@@ -1,6 +1,8 @@
 ﻿/*Begining of Auto generated code by Atmel studio */
 #include <Arduino.h>
 
+#include "arduinodaq2pc-structs.h"
+
 /*End of auto generated code by Atmel studio */
 
 #include <Wire.h>
@@ -107,7 +109,7 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 		mod_dac_max5500_update_single_DAC(dac_idx,dac_value);
 
 		// send answer back:
-		const uint8_t rx[] = { 0x69, 0x80, 0x00, 0x00, 0x96 };
+		const uint8_t rx[] = { FRAME_START_FLAG, 0x80, 0x00, 0x00, FRAME_END_FLAG };
 		Serial.write(rx,sizeof(rx));
 	}
 	break;
@@ -121,7 +123,7 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 		digitalWrite(pin_no, pin_val);
 
 		// send answer back:
-		const uint8_t rx[] = { 0x69, 0x81, 0x00, 0x00, 0x96 };
+		const uint8_t rx[] = { FRAME_START_FLAG, 0x81, 0x00, 0x00, FRAME_END_FLAG };
 		Serial.write(rx,sizeof(rx));
 	}
 	break;
@@ -134,7 +136,7 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 		const uint8_t val = digitalRead(pin_no);
 
 		// send answer back:
-		const uint8_t rx[] = { 0x69, 0x81, 0x01, val, 0x00 + val, 0x96 };
+		const uint8_t rx[] = { FRAME_START_FLAG, 0x81, 0x01, val, 0x00 + val, FRAME_END_FLAG };
 		Serial.write(rx,sizeof(rx));
 	}
 	break;
@@ -142,7 +144,7 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 	default:
 	{
 		// Error:
-		const uint8_t rx[] = { 0x69, 0xfe, 0x00, 0x00, 0x96 };
+		const uint8_t rx[] = { FRAME_START_FLAG, 0xfe, 0x00, 0x00, FRAME_END_FLAG };
 		Serial.write(rx,sizeof(rx));
 	}
 	break;
@@ -157,7 +159,7 @@ void processIncommingPkts()
 
 		// sanity:
 		if (rx_buf_len==0)
-			if (b!=0x69) {
+			if (b!=FRAME_START_FLAG) {
 				reset_rx_buf();
 				continue;
 			}
@@ -172,7 +174,7 @@ void processIncommingPkts()
 		if (rx_buf_len==5+rx_buf[2])
 		{
 			// Check if we have a full frame:
-			if (rx_buf[rx_buf_len-1]!=0x96) {
+			if (rx_buf[rx_buf_len-1]!=FRAME_END_FLAG) {
 				reset_rx_buf();
 				continue;
 			}

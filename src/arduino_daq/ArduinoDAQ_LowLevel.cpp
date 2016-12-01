@@ -4,18 +4,20 @@
    |   Copyright (C) 2014-16  University of Almeria                            |
    +---------------------------------------------------------------------------+ */
 
-#include <steer_controller/CSteerControllerLowLevel.h>
-#include "steering-control-firmware2pc-structs.h"
+#include <arduino_daq/ArduinoDAQ_LowLevel.h>
 #include <mrpt/system/threads.h> // for sleep()
 #include <ros/console.h>
 #include <steer_controller/SteerControllerStatus.h>
+#include <functional>
+
+#include "arduinodaq2pc-structs.h"
 
 using namespace std;
 using namespace mrpt;
 using namespace mrpt::utils;
 
 
-CSteerControllerLowLevel::CSteerControllerLowLevel() :
+ArduinoDAQ_LowLevel::ArduinoDAQ_LowLevel() :
 	m_nh_params("~"),
 	m_serial_port_name("ttyUSB0"),
 	m_serial_port_baudrate(1000000),
@@ -24,11 +26,11 @@ CSteerControllerLowLevel::CSteerControllerLowLevel() :
 
 }
 
-CSteerControllerLowLevel::~CSteerControllerLowLevel()
+ArduinoDAQ_LowLevel::~ArduinoDAQ_LowLevel()
 {
 }
 
-bool CSteerControllerLowLevel::initialize()
+bool ArduinoDAQ_LowLevel::initialize()
 {
 	m_nh_params.getParam("SERIAL_PORT",m_serial_port_name);
 	m_nh_params.getParam("SERIAL_PORT_BAUDRATE",m_serial_port_baudrate);
@@ -47,11 +49,22 @@ bool CSteerControllerLowLevel::initialize()
 
 	m_pub_contr_status = m_nh.advertise<steer_controller::SteerControllerStatus>("steer_controller_status", 10);
 
-	m_sub_auto_pos = m_nh.subscribe("steer_controller_auto_pos_enable", 10, &CSteerControllerLowLevel::autoPosEnableCallback, this );
-	m_sub_pwm = m_nh.subscribe("steer_controller_pwm", 10, &CSteerControllerLowLevel::pwmCallback,this );
+	// Subscribers: GPIO outputs
+	m_sub_auto_pos.resize(13);
+	for (int i=0;i<13;i++) {
+		auto fn = std::bind(&ArduinoDAQ_LowLevel::daqSetDigitalPinCallback, this, i, _1);
+		m_sub_auto_pos[i] = m_nh.subscribe<std_msgs::Bool>( mrpt::format("arduino_daq_GPIO_output%i",i), 10, fn);
+	}
+
+	// Subscribers: DAC outputs
+	m_sub_dac.resize(4);
+	for (int i=0;i<4;i++) {
+		auto fn = std::bind(&ArduinoDAQ_LowLevel::daqSetDACCallback, this, i, _1);
+		m_sub_auto_pos[i] = m_nh.subscribe<std_msgs::Float64>( mrpt::format("arduino_daq_dac%i",i), 10, fn);
+	}
 }
 
-bool CSteerControllerLowLevel::iterate()
+bool ArduinoDAQ_LowLevel::iterate()
 {
 	// Main module loop code.
 	const size_t MAX_FRAMES_PER_ITERATE = 20;
@@ -63,53 +76,29 @@ bool CSteerControllerLowLevel::iterate()
 	std::vector<uint8_t> rxFrame;
 	while (++nFrames<MAX_FRAMES_PER_ITERATE && ReceiveFrameFromController(rxFrame))
 	{
-		if (rxFrame.size()==sizeof(TStatusReport))
-		{
-			TStatusReport rep;
-			memcpy(&rep,&rxFrame[0],rxFrame.size());
-
-			const double steerVelTicks = rep.encoder_last_incr_period!=0 ? (rep.encoder_last_incr / (rep.encoder_last_incr_period*1e-4)) : 0.0;
-			const double cur_sense_volts = rep.current_sense_adc * 5.0/1024.0;
-
-			// Publish to ROS:
-			steer_controller::SteerControllerStatus scs;
-			scs.encoder_pos = rep.encoder_pos;
-			scs.encoder_vel = steerVelTicks;
-			scs.current_sense =cur_sense_volts;
-
-			m_pub_contr_status.publish(scs);
-		}
+		// Process them:
+		//ROS_INFO_STREAM << "Rx frame, len=" << rxFrame.size();
 	}
 
 	return true;
 }
 
-void CSteerControllerLowLevel::autoPosEnableCallback(const std_msgs::Bool::ConstPtr& msg)
+void ArduinoDAQ_LowLevel::daqSetDigitalPinCallback(int pin, const std_msgs::Bool::ConstPtr& msg)
 {
 	ROS_INFO("Setting autocontrol mode: %s", msg->data ? "true":"false" );
-	if (!CMD_EnableAutoControl(msg->data)) {
+/*
+ * 	if (!CMD_EnableAutoControl(msg->data)) {
 		ROS_ERROR("*** Error sending control auto mode!!! ***");
 	}
-}
-
-void CSteerControllerLowLevel::pwmCallback(const std_msgs::Float64::ConstPtr& msg)
-{
-	ROS_INFO("Setting PWM to %.02f", msg->data );
-	if (!CMD_SetPWMValue(msg->data)) {
-		ROS_ERROR("*** Error sending PWM value!!! ***");
-	}
-}
-
-/*
-			const double valAng = pVar->GetDoubleVal(); // desired angle in radians
-			const int valTicks  = ackermannAngle_inverse( valAng ); // Desired setpoint, in encoder ticks
-
-			MOOSTrace("Setting STEERANG = %f deg (=%d ticks)\n", RAD2DEG(valAng),valTicks);
-			if (!CMD_SetPosControlSetPoint(valTicks)) {
-				MOOSTrace("*** Error sending STEERANG!!! ***\n");
 */
+}
 
-bool CSteerControllerLowLevel::AttemptConnection()
+void ArduinoDAQ_LowLevel::daqSetDACCallback(int dac_index, const std_msgs::Float64::ConstPtr& msg)
+{
+
+}
+
+bool ArduinoDAQ_LowLevel::AttemptConnection()
 {
 	if (m_serial.isOpen()) return true; // Already open.
 
@@ -124,14 +113,14 @@ bool CSteerControllerLowLevel::AttemptConnection()
 	}
 	catch (exception &e)
 	{
-		ROS_ERROR("[CSteerControllerLowLevel::AttemptConnection] COMMS error: %s", e.what() );
+		ROS_ERROR("[ArduinoDAQ_LowLevel::AttemptConnection] COMMS error: %s", e.what() );
 		return false;
 	}
 }
 
 
 /** Sends a binary packet, in the expected format  (returns false on COMMS error) */
-bool CSteerControllerLowLevel::WriteBinaryFrame( const uint8_t *data, uint16_t len)
+bool ArduinoDAQ_LowLevel::WriteBinaryFrame( const uint8_t *data, uint16_t len)
 {
 	if (!AttemptConnection()) return false;
 
@@ -155,7 +144,7 @@ bool CSteerControllerLowLevel::WriteBinaryFrame( const uint8_t *data, uint16_t l
 	}
 }
 
-bool CSteerControllerLowLevel::ReceiveFrameFromController(std::vector<uint8_t> &rxFrame)
+bool ArduinoDAQ_LowLevel::ReceiveFrameFromController(std::vector<uint8_t> &rxFrame)
 {
 	rxFrame.clear();
 	size_t	nFrameBytes = 0;
@@ -165,10 +154,15 @@ bool CSteerControllerLowLevel::ReceiveFrameFromController(std::vector<uint8_t> &
 
 	size_t	lengthField;
 
-	//                                   START_FLAG    LENGTH_FIELD       DATA                     END_FLAG
-	while ( nFrameBytes < (lengthField=(    1        +     2       +   (buf[1] | (buf[2] << 8))) +     1      )  )
+	/*
+	START_FLAG   |  OPCODE  |  DATA_LEN   |   DATA      |    CHECKSUM    | END_FLAG |
+	  0x69          1 byte      1 byte       N bytes       =sum(data)       0x96
+	*/
+
+	//                                   START_FLAG     OPCODE + LEN       DATA      CHECKSUM +  END_FLAG
+	while ( nFrameBytes < (lengthField=(    1        +     1   +  1    +  buf[2]  +     1     +     1      )  )
 	{
-		if (lengthField>1000)
+		if (lengthField>200)
 		{
 			nFrameBytes = 0;	// No es cabecera de trama correcta
 			buf[1]=buf[2]=0;
@@ -189,7 +183,7 @@ bool CSteerControllerLowLevel::ReceiveFrameFromController(std::vector<uint8_t> &
 		catch (std::exception &e)
 		{
 			// Disconnected?
-			cerr << "[CSteerControllerLowLevel::ReceiveFrameFromController] Comms error: " << e.what() << endl;
+			cerr << "[ArduinoDAQ_LowLevel::ReceiveFrameFromController] Comms error: " << e.what() << endl;
 			return false;
 		}
 
@@ -206,7 +200,7 @@ bool CSteerControllerLowLevel::ReceiveFrameFromController(std::vector<uint8_t> &
 		// Check start flag:
 		bool is_ok = true;
 
-		if (!nFrameBytes && buf[0]!= STEERCONTROL_COMMS_FRAME_START_FLAG )
+		if (!nFrameBytes && buf[0]!= FRAME_START_FLAG )
 		{
 			is_ok = false;
 			//cout << "[rx] Reset frame (start flag)\n";
@@ -214,13 +208,15 @@ bool CSteerControllerLowLevel::ReceiveFrameFromController(std::vector<uint8_t> &
 
 		if (nFrameBytes>2 && nFrameBytes+nRead==lengthField)
 		{
-			if (buf[nFrameBytes+nRead-1]!=STEERCONTROL_COMMS_FRAME_END_FLAG)
+			if (buf[nFrameBytes+nRead-1]!=FRAME_END_FLAG)
 			{
 				is_ok= false;
 				//cout << "[rx] Reset frame (end flag)\n";
 			}
 			//else { cout << "[rx] Frame OK\n"; }
 		}
+
+		MRPT_TODO("Checksum");
 
 		if (is_ok)
 		{
@@ -234,14 +230,10 @@ bool CSteerControllerLowLevel::ReceiveFrameFromController(std::vector<uint8_t> &
 	}
 
 	// Frame received
-	// ----------------------------
-	// | START | LEN | DATA | END |
-	// ----------------------------
-	lengthField= (buf[1] | (buf[2] << 8));
+	lengthField= buf[2]+5;
 	rxFrame.resize(lengthField);
-	memcpy( &rxFrame[0], &buf[3], lengthField);
+	memcpy( &rxFrame[0], &buf[0], lengthField);
 
-	//MRPT_TODO("Add CRC???")
 
 	// All OK
 	return true;
@@ -249,7 +241,7 @@ bool CSteerControllerLowLevel::ReceiveFrameFromController(std::vector<uint8_t> &
 
 
 //!< Sets the automatic/manual control in the steering controller board. Return false on COMMS error
-bool CSteerControllerLowLevel::CMD_EnableAutoControl(bool enable)
+bool ArduinoDAQ_LowLevel::CMD_EnableAutoControl(bool enable)
 {
 	TCmdSetAutoMode cmd;
 	cmd.enable_pos_control = enable ? 1:0;
@@ -257,7 +249,7 @@ bool CSteerControllerLowLevel::CMD_EnableAutoControl(bool enable)
 }
 
 //!< Sets the clutch
-bool CSteerControllerLowLevel::CMD_SetClutch(bool enable)
+bool ArduinoDAQ_LowLevel::CMD_SetClutch(bool enable)
 {
 	TCmdSetClutch cmd;
 	cmd.relay_state = enable ? 1:0;
@@ -265,20 +257,20 @@ bool CSteerControllerLowLevel::CMD_SetClutch(bool enable)
 }
 
 //!< Sets the report frequency
-bool CSteerControllerLowLevel::CMD_SetReportFreq(double freq)
+bool ArduinoDAQ_LowLevel::CMD_SetReportFreq(double freq)
 {
 	const TFirmwareParams params;
 	TCmdSetReportDecimation cmd;
 	double dec = (freq>0) ? (1.0/(params.READ_ENCODERS_PERIOD*1e-4*freq)) : 10;
 	cmd.report_decimation = dec;
 
-	ROS_INFO("[CSteerControllerLowLevel] Setting report freq to %.02f Hz (dec=%f)\n", freq,dec);
+	ROS_INFO("[ArduinoDAQ_LowLevel] Setting report freq to %.02f Hz (dec=%f)\n", freq,dec);
 
 	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd),sizeof(cmd));
 }
 
 //!< Sets the PWM value (-1023,1023)
-bool CSteerControllerLowLevel::CMD_SetPWMValue(double pwm_duty_cycle)
+bool ArduinoDAQ_LowLevel::CMD_SetPWMValue(double pwm_duty_cycle)
 {
 	TCmdSetPWMValue cmd;
 	cmd.pwm_value = pwm_duty_cycle*1023;
@@ -286,7 +278,7 @@ bool CSteerControllerLowLevel::CMD_SetPWMValue(double pwm_duty_cycle)
 }
 
 //!< Sets the position setpoint
-bool CSteerControllerLowLevel::CMD_SetPosControlSetPoint(int pos_ticks)
+bool ArduinoDAQ_LowLevel::CMD_SetPosControlSetPoint(int pos_ticks)
 {
 	TCmdSetPosControlSetPoint cmd;
 	cmd.setpoint_ticks = pos_ticks;

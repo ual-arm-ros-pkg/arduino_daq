@@ -11,11 +11,11 @@
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float64.h>
 
-class CSteerControllerLowLevel
+class ArduinoDAQ_LowLevel
 {
 public:
-	CSteerControllerLowLevel();
-	virtual ~CSteerControllerLowLevel();
+	ArduinoDAQ_LowLevel();
+	virtual ~ArduinoDAQ_LowLevel();
 
 	/**
 	* NodeHandle is the main access point to communications with the ROS system.
@@ -26,7 +26,7 @@ public:
 	ros::NodeHandle m_nh_params;
 
 	ros::Publisher  m_pub_contr_status;
-	ros::Subscriber m_sub_auto_pos, m_sub_pwm;
+	std::vector<ros::Subscriber> m_sub_auto_pos, m_sub_dac;
 
 	/** called at startup, load params from ROS launch file and attempts to connect to the USB device
 	  * \return false on error */
@@ -61,7 +61,7 @@ protected:
 	/** Convert Ackermann central angle (radians) to encoder ticks: */
 	int32_t ackermannAngle_inverse(double angle_radians) const;
 
-	void autoPosEnableCallback(const std_msgs::Bool::ConstPtr& msg);
-	void pwmCallback(const std_msgs::Float64::ConstPtr& msg);
+	void daqSetDigitalPinCallback(int index, const std_msgs::Bool::ConstPtr& msg);
+	void daqSetDACCallback(int dac_index, const std_msgs::Float64::ConstPtr& msg);
 
 };
