@@ -7,7 +7,7 @@
 #include <arduino_daq/ArduinoDAQ_LowLevel.h>
 #include <mrpt/system/threads.h> // for sleep()
 #include <ros/console.h>
-#include <steer_controller/SteerControllerStatus.h>
+#include <arduino_daq/ArduinoDAQ_LowLevel.h>
 #include <functional>
 
 #include "arduinodaq2pc-structs.h"
