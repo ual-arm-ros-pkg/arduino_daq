@@ -42,3 +42,9 @@ Communication PC <-> arduino happens based on data frames as follow:
 	* 0x81: GPIO pin value ACK. DATA_LEN=0
 	* 0x82: GPIO pin value read. DATA_LEN=1
 	* 0xfe: Unknown command opcode. (Error)
+
+ROS graph
+=======================
+
+
+<img width="300" src="https://raw.githubusercontent.com/ual-arm-ros-pkg/ual-ecar-ros-pkg/master/arduino_daq/doc/rosgraph_arduino_daq.png" />
