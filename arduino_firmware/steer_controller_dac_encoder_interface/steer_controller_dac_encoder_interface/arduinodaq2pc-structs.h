@@ -25,41 +25,68 @@ START_FLAG   |  OPCODE  |  DATA_LEN   |   DATA      |    CHECKSUM    | END_FLAG 
 #define FRAME_START_FLAG  0x69
 #define FRAME_END_FLAG    0x96
 
+template <typename Payload>
 struct TBaseFrame
 {
-	static uint8_t calc_checksum(const void *ptr_frame)
-	{
-		const uint8_t len   = reinterpret_cast<const uint8_t*>(ptr_frame)[2];
-		const uint8_t *data = &reinterpret_cast<const uint8_t*>(ptr_frame)[3];
-		uint8_t ret =0;
-		for (unsigned int i=0;i<len;i++) ret+=*data++;
-		return ret;
-	}
+    const uint8_t  START_FLAG;
+    const uint8_t  OPCODE;
+    const uint8_t  DATALEN;
+    // --------- Payload -------
+    Payload  payload;
+    // -------------------------
+    uint8_t  CHECKSUM;
+    const uint8_t  END_FLAG;
+
+    // Defaults:
+    TBaseFrame(uint8_t opcode) :
+            START_FLAG(FRAME_START_FLAG),
+            OPCODE(opcode),
+            DATALEN(sizeof(Payload)),
+            END_FLAG(FRAME_END_FLAG)
+    {
+    }
+
+    void calc_and_update_checksum()
+    {
+        CHECKSUM = calc_checksum();    
+    }
+    
+    uint8_t calc_checksum() const
+    {
+        const uint8_t len   = DATALEN; //reinterpret_cast<const uint8_t*>(ptr_frame)[2];
+        const uint8_t *data = reinterpret_cast<const uint8_t*>(&payload);
+        uint8_t ret =0;
+        for (unsigned int i=0;i<len;i++) ret+=*data++;
+        return ret;
+    }
 };
 
-
-/** List of parameters that can be set from the PC via USB */
-struct TFrameCMD_SetDAC : public TBaseFrame
+struct TFrameCMD_SetDAC_payload_t
 {
-	const uint8_t  START_FLAG;
-	const uint8_t  OPCODE;
-	const uint8_t  DATALEN;
-	// --------- Payload -------
-	uint8_t  dac_index;
-	uint8_t  dac_value_HI, dac_value_LO;
-	// -------------------------
-	uint8_t  CHECKSUM;
-	const uint8_t  END_FLAG;
-
-	// Defaults:
-	TFrameCMD_SetDAC() :
-		START_FLAG(FRAME_START_FLAG),
-		OPCODE(0x10),
-		DATALEN(sizeof(TFrameCMD_SetDAC)-5),
-		END_FLAG(FRAME_END_FLAG)
-	{
-	}
+    uint8_t  dac_index;
+    uint8_t  dac_value_HI, dac_value_LO;
 };
+struct TFrameCMD_SetDAC : public TBaseFrame<TFrameCMD_SetDAC_payload_t>
+{
+    // Defaults:
+    TFrameCMD_SetDAC() : TBaseFrame(0x10)
+    {
+    }
+};
+
+struct TFrameCMD_GPIO_output_payload_t
+{
+    uint8_t  pin_index;
+    uint8_t  pin_value;;
+};
+struct TFrameCMD_GPIO_output : public TBaseFrame<TFrameCMD_GPIO_output_payload_t>
+{
+    // Defaults:
+    TFrameCMD_GPIO_output() : TBaseFrame(0x11)
+    {
+    }
+};
+
 
 #if !defined(__AVR_MEGA__)
 #	pragma pack(pop)

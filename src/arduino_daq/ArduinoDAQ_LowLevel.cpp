@@ -10,8 +10,6 @@
 #include <arduino_daq/ArduinoDAQ_LowLevel.h>
 #include <functional>
 
-#include "arduinodaq2pc-structs.h"
-
 using namespace std;
 using namespace mrpt;
 using namespace mrpt::utils;
@@ -20,8 +18,7 @@ using namespace mrpt::utils;
 ArduinoDAQ_LowLevel::ArduinoDAQ_LowLevel() :
 	m_nh_params("~"),
 	m_serial_port_name("ttyUSB0"),
-	m_serial_port_baudrate(1000000),
-	m_steer_report_freq(30)
+	m_serial_port_baudrate(1000000)
 {
 
 }
@@ -34,20 +31,14 @@ bool ArduinoDAQ_LowLevel::initialize()
 {
 	m_nh_params.getParam("SERIAL_PORT",m_serial_port_name);
 	m_nh_params.getParam("SERIAL_PORT_BAUDRATE",m_serial_port_baudrate);
-	m_nh_params.getParam("STEERPOS_STATUS_FREQ",m_steer_report_freq);
 
 	// Try to connect...
 	if (this->AttemptConnection())
 	{
-		ROS_INFO("Connection OK to steering controller.");
-
-		CMD_SetReportFreq(m_steer_report_freq);
-		CMD_SetPWMValue(0);
-
-		// TODO: Send control parameters to controller?
+		ROS_INFO("Connection OK to ArduinoDAQ.");
 	}
 
-	m_pub_contr_status = m_nh.advertise<steer_controller::SteerControllerStatus>("steer_controller_status", 10);
+	//m_pub_contr_status = m_nh.advertise<steer_controller::SteerControllerStatus>("steer_controller_status", 10);
 
 	// Subscribers: GPIO outputs
 	m_sub_auto_pos.resize(13);
@@ -85,17 +76,21 @@ bool ArduinoDAQ_LowLevel::iterate()
 
 void ArduinoDAQ_LowLevel::daqSetDigitalPinCallback(int pin, const std_msgs::Bool::ConstPtr& msg)
 {
-	ROS_INFO("Setting autocontrol mode: %s", msg->data ? "true":"false" );
-/*
- * 	if (!CMD_EnableAutoControl(msg->data)) {
-		ROS_ERROR("*** Error sending control auto mode!!! ***");
-	}
-*/
+    ROS_INFO("GPIO: output[%i]=%s", pin, msg->data ? "true":"false" );
+
+    if (!CMD_GPIO_output(pin,msg->data)) {
+        ROS_ERROR("*** Error sending CMD_GPIO_output!!! ***");
+    }
 }
 
 void ArduinoDAQ_LowLevel::daqSetDACCallback(int dac_index, const std_msgs::Float64::ConstPtr& msg)
 {
+    ROS_INFO("DAC: channel[%i]=%f V", dac_index, msg->data);
 
+    if (!CMD_DAC(dac_index,msg->data)) {
+        ROS_ERROR("*** Error sending CMD_DAC!!! ***");
+    }
+    
 }
 
 bool ArduinoDAQ_LowLevel::AttemptConnection()
@@ -119,23 +114,14 @@ bool ArduinoDAQ_LowLevel::AttemptConnection()
 }
 
 
-/** Sends a binary packet, in the expected format  (returns false on COMMS error) */
-bool ArduinoDAQ_LowLevel::WriteBinaryFrame( const uint8_t *data, uint16_t len)
+/** Sends a binary packet (returns false on COMMS error) */
+bool ArduinoDAQ_LowLevel::WriteBinaryFrame(const uint8_t *full_frame, const size_t full_frame_len)
 {
 	if (!AttemptConnection()) return false;
 
-	std::vector<uint8_t> buf;
-
-	buf.resize(len+1+2+1);
-	buf[0] = STEERCONTROL_COMMS_FRAME_START_FLAG;
-	buf[1] = len & 0xFF;
-	buf[2] = (len>>8) & 0xFF;
-	memcpy( &buf[3], data, len);
-	buf[len+3] = STEERCONTROL_COMMS_FRAME_END_FLAG;
-
 	try
 	{
-		m_serial.WriteBuffer(&buf[0],buf.size());
+		m_serial.WriteBuffer(full_frame,full_frame_len);
 		return true;
 	}
 	catch (std::exception &)
@@ -160,7 +146,7 @@ bool ArduinoDAQ_LowLevel::ReceiveFrameFromController(std::vector<uint8_t> &rxFra
 	*/
 
 	//                                   START_FLAG     OPCODE + LEN       DATA      CHECKSUM +  END_FLAG
-	while ( nFrameBytes < (lengthField=(    1        +     1   +  1    +  buf[2]  +     1     +     1      )  )
+	while ( nFrameBytes < (lengthField=(    1        +     1   +  1    +  buf[2]  +     1     +     1      )  ) )
 	{
 		if (lengthField>200)
 		{
@@ -240,47 +226,30 @@ bool ArduinoDAQ_LowLevel::ReceiveFrameFromController(std::vector<uint8_t> &rxFra
 }
 
 
-//!< Sets the automatic/manual control in the steering controller board. Return false on COMMS error
-bool ArduinoDAQ_LowLevel::CMD_EnableAutoControl(bool enable)
+bool ArduinoDAQ_LowLevel::CMD_GPIO_output(int pin, bool pinState)
 {
-	TCmdSetAutoMode cmd;
-	cmd.enable_pos_control = enable ? 1:0;
-	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd),sizeof(cmd));
+    TFrameCMD_GPIO_output cmd;
+    cmd.payload.pin_index = pin;
+    cmd.payload.pin_value = pinState ? 1:0;
+    
+    cmd.calc_and_update_checksum();
+    
+    return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd),sizeof(cmd));
 }
 
 //!< Sets the clutch
-bool ArduinoDAQ_LowLevel::CMD_SetClutch(bool enable)
+bool ArduinoDAQ_LowLevel::CMD_DAC(int dac_index,double dac_value_volts)
 {
-	TCmdSetClutch cmd;
-	cmd.relay_state = enable ? 1:0;
-	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd),sizeof(cmd));
+    uint16_t dac_counts = 4096 * dac_value_volts / 5.0;
+    mrpt::utils::saturate(dac_counts, uint16_t(0), uint16_t(4095));
+    
+    TFrameCMD_SetDAC cmd;
+    cmd.payload.dac_index = dac_index;
+    cmd.payload.dac_value_HI = dac_counts >> 8;
+    cmd.payload.dac_value_LO = dac_counts & 0x00ff;
+    
+    cmd.calc_and_update_checksum();
+    
+    return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd),sizeof(cmd));
 }
 
-//!< Sets the report frequency
-bool ArduinoDAQ_LowLevel::CMD_SetReportFreq(double freq)
-{
-	const TFirmwareParams params;
-	TCmdSetReportDecimation cmd;
-	double dec = (freq>0) ? (1.0/(params.READ_ENCODERS_PERIOD*1e-4*freq)) : 10;
-	cmd.report_decimation = dec;
-
-	ROS_INFO("[ArduinoDAQ_LowLevel] Setting report freq to %.02f Hz (dec=%f)\n", freq,dec);
-
-	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd),sizeof(cmd));
-}
-
-//!< Sets the PWM value (-1023,1023)
-bool ArduinoDAQ_LowLevel::CMD_SetPWMValue(double pwm_duty_cycle)
-{
-	TCmdSetPWMValue cmd;
-	cmd.pwm_value = pwm_duty_cycle*1023;
-	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd),sizeof(cmd));
-}
-
-//!< Sets the position setpoint
-bool ArduinoDAQ_LowLevel::CMD_SetPosControlSetPoint(int pos_ticks)
-{
-	TCmdSetPosControlSetPoint cmd;
-	cmd.setpoint_ticks = pos_ticks;
-	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd),sizeof(cmd));
-}
