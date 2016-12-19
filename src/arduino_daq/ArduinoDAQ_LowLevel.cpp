@@ -43,14 +43,14 @@ bool ArduinoDAQ_LowLevel::initialize()
 	// Subscribers: GPIO outputs
 	m_sub_auto_pos.resize(13);
 	for (int i=0;i<13;i++) {
-		auto fn = std::bind(&ArduinoDAQ_LowLevel::daqSetDigitalPinCallback, this, i, _1);
+		auto fn = boost::bind(&ArduinoDAQ_LowLevel::daqSetDigitalPinCallback, this, i, _1);
 		m_sub_auto_pos[i] = m_nh.subscribe<std_msgs::Bool>( mrpt::format("arduino_daq_GPIO_output%i",i), 10, fn);
 	}
 
 	// Subscribers: DAC outputs
 	m_sub_dac.resize(4);
 	for (int i=0;i<4;i++) {
-		auto fn = std::bind(&ArduinoDAQ_LowLevel::daqSetDACCallback, this, i, _1);
+		auto fn = boost::bind(&ArduinoDAQ_LowLevel::daqSetDACCallback, this, i, _1);
 		m_sub_auto_pos[i] = m_nh.subscribe<std_msgs::Float64>( mrpt::format("arduino_daq_dac%i",i), 10, fn);
 	}
 }

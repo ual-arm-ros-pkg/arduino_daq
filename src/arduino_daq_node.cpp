@@ -1,5 +1,5 @@
 
-#include <steer_controller/CSteerControllerLowLevel.h>
+#include <arduino_daq/ArduinoDAQ_LowLevel.h>
 #include <std_msgs/String.h>
 #include <ros/console.h>
 
@@ -10,14 +10,14 @@ int main(int argc, char **argv)
 	{
 		ros::init(argc, argv, "steer_controller");
 
-		CSteerControllerLowLevel  steer_controller;
-		steer_controller.initialize();
+		ArduinoDAQ_LowLevel  daq;
+		daq.initialize();
 
 		ros::Rate loop_rate(100);
 		while (ros::ok())
 		{
 			ros::spinOnce();
-			steer_controller.iterate();
+			daq.iterate();
 			loop_rate.sleep();
 		}
 

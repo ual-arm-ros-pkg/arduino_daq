@@ -57,4 +57,6 @@ protected:
 	void daqSetDigitalPinCallback(int index, const std_msgs::Bool::ConstPtr& msg);
 	void daqSetDACCallback(int dac_index, const std_msgs::Float64::ConstPtr& msg);
 
+	void prueba(const std_msgs::Bool::ConstPtr& msg);
+
 };
