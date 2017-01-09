@@ -8,7 +8,7 @@ int main(int argc, char **argv)
 {
 	try
 	{
-		ros::init(argc, argv, "steer_controller");
+		ros::init(argc, argv, "arduino_daq");
 
 		ArduinoDAQ_LowLevel  daq;
 		daq.initialize();
