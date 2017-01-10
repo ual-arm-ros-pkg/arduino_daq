@@ -91,7 +91,7 @@ add_definitions(-std=c++11)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES steer_controller
-#  CATKIN_DEPENDS roscpp std_msgs message_runtime
+CATKIN_DEPENDS std_msgs
 #  DEPENDS system_lib
 )
 
