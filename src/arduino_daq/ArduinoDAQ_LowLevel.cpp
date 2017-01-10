@@ -14,11 +14,12 @@ using namespace std;
 using namespace mrpt;
 using namespace mrpt::utils;
 
+//#define DEBUG_TRACES
 
 ArduinoDAQ_LowLevel::ArduinoDAQ_LowLevel() :
 	m_nh_params("~"),
 	m_serial_port_name("ttyUSB0"),
-	m_serial_port_baudrate(1000000)
+	m_serial_port_baudrate(9600)
 {
 
 }
@@ -90,7 +91,7 @@ void ArduinoDAQ_LowLevel::daqSetDACCallback(int dac_index, const std_msgs::Float
     if (!CMD_DAC(dac_index,msg->data)) {
         ROS_ERROR("*** Error sending CMD_DAC!!! ***");
     }
-    
+
 }
 
 bool ArduinoDAQ_LowLevel::AttemptConnection()
@@ -119,8 +120,20 @@ bool ArduinoDAQ_LowLevel::WriteBinaryFrame(const uint8_t *full_frame, const size
 {
 	if (!AttemptConnection()) return false;
 
+	ASSERT_(full_frame!=NULL);
+
 	try
 	{
+#ifdef DEBUG_TRACES
+		{
+			std::string s;
+			s+=mrpt::format("TX frame (%u bytes): ", (unsigned int) full_frame_len);
+			for (size_t i=0;i< full_frame_len;i++)
+				s+=mrpt::format("%02X ", full_frame[i]);
+			ROS_INFO("Tx frame: %s", s.c_str());
+		}
+#endif
+
 		m_serial.WriteBuffer(full_frame,full_frame_len);
 		return true;
 	}
@@ -152,7 +165,7 @@ bool ArduinoDAQ_LowLevel::ReceiveFrameFromController(std::vector<uint8_t> &rxFra
 		{
 			nFrameBytes = 0;	// No es cabecera de trama correcta
 			buf[1]=buf[2]=0;
-			cout << "[rx] Reset frame (invalid len)\n";
+			ROS_INFO("[rx] Reset frame (invalid len)");
 		}
 
 		size_t nBytesToRead;
@@ -220,6 +233,15 @@ bool ArduinoDAQ_LowLevel::ReceiveFrameFromController(std::vector<uint8_t> &rxFra
 	rxFrame.resize(lengthField);
 	memcpy( &rxFrame[0], &buf[0], lengthField);
 
+#ifdef DEBUG_TRACES
+		{
+			std::string s;
+			s+=mrpt::format("RX frame (%u bytes): ", (unsigned int) lengthField);
+			for (size_t i=0;i< lengthField;i++)
+				s+=mrpt::format("%02X ", rxFrame[i]);
+			ROS_INFO("%s", s.c_str());
+		}
+#endif
 
 	// All OK
 	return true;
@@ -231,9 +253,9 @@ bool ArduinoDAQ_LowLevel::CMD_GPIO_output(int pin, bool pinState)
     TFrameCMD_GPIO_output cmd;
     cmd.payload.pin_index = pin;
     cmd.payload.pin_value = pinState ? 1:0;
-    
+
     cmd.calc_and_update_checksum();
-    
+
     return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd),sizeof(cmd));
 }
 
@@ -242,14 +264,13 @@ bool ArduinoDAQ_LowLevel::CMD_DAC(int dac_index,double dac_value_volts)
 {
     uint16_t dac_counts = 4096 * dac_value_volts / 5.0;
     mrpt::utils::saturate(dac_counts, uint16_t(0), uint16_t(4095));
-    
+
     TFrameCMD_SetDAC cmd;
     cmd.payload.dac_index = dac_index;
     cmd.payload.dac_value_HI = dac_counts >> 8;
     cmd.payload.dac_value_LO = dac_counts & 0x00ff;
-    
+
     cmd.calc_and_update_checksum();
-    
+
     return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd),sizeof(cmd));
 }
-
