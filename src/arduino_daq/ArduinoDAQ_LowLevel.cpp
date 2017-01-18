@@ -18,7 +18,7 @@ using namespace mrpt::utils;
 
 ArduinoDAQ_LowLevel::ArduinoDAQ_LowLevel() :
 	m_nh_params("~"),
-	m_serial_port_name("ttyUSB0"),
+	m_serial_port_name("/dev/serial/by-id/usb-FTDI_TTL232R-3V3_FT9J3NTD-if00-port0"),
 	m_serial_port_baudrate(9600)
 {
 
