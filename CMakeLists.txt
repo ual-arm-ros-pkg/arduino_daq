@@ -44,7 +44,7 @@ CATKIN_DEPENDS std_msgs
 # include_directories(include)
 include_directories(
   ${catkin_INCLUDE_DIRS}
-  ${${PROJECT_NAME}_SOURCE_DIR}/arduino_firmware/steer_controller_dac_encoder_interface/steer_controller_dac_encoder_interface/
+  ${${PROJECT_NAME}_SOURCE_DIR}/arduino_firmware/arduino_daq/arduino_daq/
   ${${PROJECT_NAME}_SOURCE_DIR}/include
 )
 
