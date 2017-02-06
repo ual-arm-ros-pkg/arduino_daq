@@ -58,16 +58,16 @@ Sketch.d
 C_DEPS_AS_ARGS +=  \
 Sketch.d
 
-OUTPUT_FILE_PATH +=steer_controller_dac_encoder_interface.elf
+OUTPUT_FILE_PATH +=arduino_daq.elf
 
-OUTPUT_FILE_PATH_AS_ARGS +=steer_controller_dac_encoder_interface.elf
+OUTPUT_FILE_PATH_AS_ARGS +=arduino_daq.elf
 
 ADDITIONAL_DEPENDENCIES:=
 
 OUTPUT_FILE_DEP:= ./makedep.mk
 
 LIB_DEP+=  \
-D:/code/ual-ecar-ros-pkg/arduino_daq/arduino_firmware/steer_controller_dac_encoder_interface/ArduinoCore/Release/libArduinoCore.a
+D:/code/ual-ecar-ros-pkg/arduino_daq/arduino_firmware/arduino_daq/ArduinoCore/Release/libArduinoCore.a
 
 LINKER_SCRIPT_DEP+= 
 
@@ -108,13 +108,13 @@ all: $(OUTPUT_FILE_PATH) $(ADDITIONAL_DEPENDENCIES)
 $(OUTPUT_FILE_PATH): $(OBJS) $(USER_OBJS) $(OUTPUT_FILE_DEP) $(LIB_DEP) $(LINKER_SCRIPT_DEP)
 	@echo Building target: $@
 	@echo Invoking: AVR8/GNU Linker : 4.9.2
-	$(QUOTE)C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\avr8\avr8-gnu-toolchain\bin\avr-g++.exe$(QUOTE) -o$(OUTPUT_FILE_PATH_AS_ARGS) $(OBJS_AS_ARGS) $(USER_OBJS) $(LIBS) -Wl,-Map="steer_controller_dac_encoder_interface.map" -Wl,--start-group -Wl,-lm -Wl,-lArduinoCore  -Wl,--end-group -Wl,-L"D:\code\UAL-EC~1\ARDUIN~1\ARDUIN~1\STEER_~1\ARDUIN~1\Release"  -Wl,--gc-sections -mmcu=atmega328p -B "C:\Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.0.106\gcc\dev\atmega328p" -Os  
+	$(QUOTE)C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\avr8\avr8-gnu-toolchain\bin\avr-g++.exe$(QUOTE) -o$(OUTPUT_FILE_PATH_AS_ARGS) $(OBJS_AS_ARGS) $(USER_OBJS) $(LIBS) -Wl,-Map="arduino_daq.map" -Wl,--start-group -Wl,-lm -Wl,-lArduinoCore  -Wl,--end-group -Wl,-L"D:\code\ual-ecar-ros-pkg\arduino_daq\arduino_firmware\arduino_daq\ArduinoCore\Release"  -Wl,--gc-sections -mmcu=atmega328p -B "C:\Program Files (x86)\Atmel\Studio\7.0\Packs\atmel\ATmega_DFP\1.0.106\gcc\dev\atmega328p" -Os  
 	@echo Finished building target: $@
-	"C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\avr8\avr8-gnu-toolchain\bin\avr-objcopy.exe" -O ihex -R .eeprom -R .fuse -R .lock -R .signature -R .user_signatures  "steer_controller_dac_encoder_interface.elf" "steer_controller_dac_encoder_interface.hex"
-	"C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\avr8\avr8-gnu-toolchain\bin\avr-objcopy.exe" -j .eeprom  --set-section-flags=.eeprom=alloc,load --change-section-lma .eeprom=0  --no-change-warnings -O ihex "steer_controller_dac_encoder_interface.elf" "steer_controller_dac_encoder_interface.eep" || exit 0
-	"C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\avr8\avr8-gnu-toolchain\bin\avr-objdump.exe" -h -S "steer_controller_dac_encoder_interface.elf" > "steer_controller_dac_encoder_interface.lss"
-	"C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\avr8\avr8-gnu-toolchain\bin\avr-objcopy.exe" -O srec -R .eeprom -R .fuse -R .lock -R .signature -R .user_signatures "steer_controller_dac_encoder_interface.elf" "steer_controller_dac_encoder_interface.srec"
-	"C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\avr8\avr8-gnu-toolchain\bin\avr-size.exe" "steer_controller_dac_encoder_interface.elf"
+	"C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\avr8\avr8-gnu-toolchain\bin\avr-objcopy.exe" -O ihex -R .eeprom -R .fuse -R .lock -R .signature -R .user_signatures  "arduino_daq.elf" "arduino_daq.hex"
+	"C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\avr8\avr8-gnu-toolchain\bin\avr-objcopy.exe" -j .eeprom  --set-section-flags=.eeprom=alloc,load --change-section-lma .eeprom=0  --no-change-warnings -O ihex "arduino_daq.elf" "arduino_daq.eep" || exit 0
+	"C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\avr8\avr8-gnu-toolchain\bin\avr-objdump.exe" -h -S "arduino_daq.elf" > "arduino_daq.lss"
+	"C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\avr8\avr8-gnu-toolchain\bin\avr-objcopy.exe" -O srec -R .eeprom -R .fuse -R .lock -R .signature -R .user_signatures "arduino_daq.elf" "arduino_daq.srec"
+	"C:\Program Files (x86)\Atmel\Studio\7.0\toolchain\avr8\avr8-gnu-toolchain\bin\avr-size.exe" "arduino_daq.elf"
 	
 	
 
@@ -126,5 +126,5 @@ $(OUTPUT_FILE_PATH): $(OBJS) $(USER_OBJS) $(OUTPUT_FILE_DEP) $(LIB_DEP) $(LINKER
 clean:
 	-$(RM) $(OBJS_AS_ARGS) $(EXECUTABLES)  
 	-$(RM) $(C_DEPS_AS_ARGS)   
-	rm -rf "steer_controller_dac_encoder_interface.elf" "steer_controller_dac_encoder_interface.a" "steer_controller_dac_encoder_interface.hex" "steer_controller_dac_encoder_interface.lss" "steer_controller_dac_encoder_interface.eep" "steer_controller_dac_encoder_interface.map" "steer_controller_dac_encoder_interface.srec" "steer_controller_dac_encoder_interface.usersignatures"
+	rm -rf "arduino_daq.elf" "arduino_daq.a" "arduino_daq.hex" "arduino_daq.lss" "arduino_daq.eep" "arduino_daq.map" "arduino_daq.srec" "arduino_daq.usersignatures"
 	
