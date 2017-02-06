@@ -14,6 +14,12 @@
 const int PIN_DAC_MAX5500_CS  = 9;
 const int PIN_LED             =  13;
 
+// ADC reading subsystem:
+uint8_t        num_active_ADC_channels = 0;
+const uint8_t  MAX_ADC_CHANNELS = 8;
+uint8_t        ADC_active_channels[MAX_ADC_CHANNELS] = {0,0,0,0,0,0,0,0};
+unsigned long  ADC_last_millis = 0;
+int            ADC_sampling_period_ms = 200;
 
 /* SPI frames for the MAX5500 chip
            16 bits
@@ -81,6 +87,9 @@ void setup()
 
 	// Set all chip outputs to 0V
 	mod_dac_max5500_send_spi_word(0x8000);
+
+	// Enable ADC with internal reference:
+	analogReference(INTERNAL);
 
 	Serial.begin(9600);
 }
@@ -198,8 +207,31 @@ void processIncommingPkts()
 	}
 }
 
+void processADCs()
+{
+	if (!num_active_ADC_channels)
+		return;
+
+	const unsigned long tnow = millis();
+
+	if (tnow-ADC_last_millis < ADC_sampling_period_ms)
+		return;
+
+	ADC_last_millis = tnow;
+
+	int16_t ADC_readings[MAX_ADC_CHANNELS];
+	
+	for (uint8_t i=0;i<num_active_ADC_channels;i++)
+	{
+		ADC_readings[i] = analogRead(ADC_active_channels[i]);
+	}
+
+	// TODO: Send frame via USB!
+}
 
 void loop()
 {
 	processIncommingPkts();
+	processADCs();
+
 }
