@@ -13,8 +13,8 @@
     <ArduinoProjectType>Sketch</ArduinoProjectType>
     <OutputFileExtension>.elf</OutputFileExtension>
     <OutputDirectory>$(MSBuildProjectDirectory)\$(Configuration)</OutputDirectory>
-    <Name>steer_controller_dac_encoder_interface</Name>
-    <RootNamespace>steer_controller_dac_encoder_interface</RootNamespace>
+    <Name>arduino_daq</Name>
+    <RootNamespace>arduino_daq</RootNamespace>
     <ArduinoIdeDir>D:\Program Files (x86)\Arduino</ArduinoIdeDir>
     <ToolchainFlavour>Native</ToolchainFlavour>
     <KeepTimersRunning>true</KeepTimersRunning>
@@ -27,7 +27,7 @@
     <OverrideVtorValue>exception_table</OverrideVtorValue>
     <BootSegment>2</BootSegment>
     <eraseonlaunchrule>0</eraseonlaunchrule>
-    <AssemblyName>steer_controller_dac_encoder_interface</AssemblyName>
+    <AssemblyName>arduino_daq</AssemblyName>
     <AsfFrameworkConfig>
       <framework-data xmlns="">
         <options />

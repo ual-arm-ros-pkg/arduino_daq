@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Atmel Studio Solution File, Format Version 11.00
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{E66E83B9-2572-4076-B26E-6BE79FF3018A}") = "steer_controller_dac_encoder_interface", "steer_controller_dac_encoder_interface\steer_controller_dac_encoder_interface\steer_controller_dac_encoder_interface.cppproj", "{DCE6C7E3-EE26-4D79-826B-08594B9AD897}"
+Project("{E66E83B9-2572-4076-B26E-6BE79FF3018A}") = "arduino_daq", "arduino_daq\arduino_daq\arduino_daq.cppproj", "{DCE6C7E3-EE26-4D79-826B-08594B9AD897}"
 EndProject
-Project("{E66E83B9-2572-4076-B26E-6BE79FF3018A}") = "ArduinoCore", "steer_controller_dac_encoder_interface\ArduinoCore\ArduinoCore.cppproj", "{B4A5AFC6-F235-4CF4-8735-530012177675}"
+Project("{E66E83B9-2572-4076-B26E-6BE79FF3018A}") = "ArduinoCore", "arduino_daq\ArduinoCore\ArduinoCore.cppproj", "{B4A5AFC6-F235-4CF4-8735-530012177675}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
