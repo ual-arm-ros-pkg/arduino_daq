@@ -1,0 +1,7 @@
+*~
+arduino_firmware/.vs
+arduino_firmware/arduino_daq/ArduinoCore/Debug
+arduino_firmware/arduino_daq/ArduinoCore/Release
+arduino_firmware/arduino_daq/arduino_daq/Debug
+arduino_firmware/arduino_daq/arduino_daq/Release
+*.o

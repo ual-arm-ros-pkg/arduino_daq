@@ -5,6 +5,8 @@ This package contains a standalone C++ library and a ROS node for
 UAL eCAR's Arduino-based DAQ system, with 4 analog outputs (MAX5500), 
 ADC inputs and GPIO support.
 
+Used microcontroller is atmega328P, although it could be recompiled for other larger versions.
+
 Examples of use & demos for ROS:
 
 * Launch:
@@ -38,11 +40,16 @@ Communication PC <-> arduino happens based on data frames as follow:
 		* DATA[1]   = 0/1
 	* 0x12: Read GPIO pin. DATA_LEN = 1
 		* DATA[0]   = Arduino-based pin number
+	* 0x20: Start ADC continuous acquisition task
+	* 0x21: Stop ADC task
 
 ## Controller => Computer
 	* 0x80: Set DAC value ACK. DATA_LEN=0
 	* 0x81: GPIO pin value ACK. DATA_LEN=0
 	* 0x82: GPIO pin value read. DATA_LEN=1
+	* 0x90: Start ADC ACK.
+	* 0x91: Stop ADC ACK.
+	* 0x92: ADC readings.
 	* 0xfe: Unknown command opcode. (Error)
 
 ROS graph

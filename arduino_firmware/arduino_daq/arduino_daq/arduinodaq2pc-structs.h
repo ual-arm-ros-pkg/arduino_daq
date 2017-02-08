@@ -19,6 +19,8 @@ START_FLAG   |  OPCODE  |  DATA_LEN   |   DATA      |    CHECKSUM    | END_FLAG 
 	* DATA[1]   = 0/1
 * 0x12: Read GPIO pin. DATA_LEN = 1
 	* DATA[0]   = Arduino-based pin number
+* 0x20: Start ADC continuous acquisition task
+* 0x21: Stop ADC task
 
 */
 
@@ -87,6 +89,54 @@ struct TFrameCMD_GPIO_output : public TBaseFrame<TFrameCMD_GPIO_output_payload_t
     }
 };
 
+struct TFrameCMD_ADC_start_payload_t
+{
+	/** Fill all the pins ("Arduino-based numbering") that want to get read with an ADC. Default values = -1, means ignore that channel.
+	  */
+	int8_t   active_channels[8];
+	uint16_t measure_period_ms; //!< Default = 200
+	uint8_t  use_internal_refvolt; //!< 0 or 1. Default=0
+
+	TFrameCMD_ADC_start_payload_t() :
+		measure_period_ms(200),
+		use_internal_refvolt(0)
+	{
+		for (int i=0;i<8;i++) { 
+			active_channels[i]=-1; 
+		}
+	}
+};
+struct TFrameCMD_ADC_start : public TBaseFrame<TFrameCMD_ADC_start_payload_t>
+{
+	// Defaults:
+	TFrameCMD_ADC_start() : TBaseFrame(0x20)
+	{
+	}
+};
+
+struct TFrameCMD_ADC_stop_payload_t
+{
+};
+struct TFrameCMD_ADC_stop : public TBaseFrame<TFrameCMD_ADC_stop_payload_t>
+{
+	// Defaults:
+	TFrameCMD_ADC_stop() : TBaseFrame(0x21)
+	{
+	}
+};
+
+struct TFrame_ADC_readings_payload_t
+{
+	uint32_t timestamp_ms;
+	uint16_t adc_data[8];
+};
+struct TFrame_ADC_readings : public TBaseFrame<TFrame_ADC_readings_payload_t>
+{
+	// Defaults:
+	TFrame_ADC_readings() : TBaseFrame(0x92)
+	{
+	}
+};
 
 #if !defined(__AVR_MEGA__)
 #	pragma pack(pop)

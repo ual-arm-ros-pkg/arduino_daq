@@ -5,6 +5,9 @@
 
 /*End of auto generated code by Atmel studio */
 
+// Originally designed for atmega328P.
+// --------------------------------------
+
 #include <Wire.h>
 #include <SPI.h>
 //Beginning of Auto generated function prototypes by Atmel Studio
@@ -19,7 +22,7 @@ uint8_t        num_active_ADC_channels = 0;
 const uint8_t  MAX_ADC_CHANNELS = 8;
 uint8_t        ADC_active_channels[MAX_ADC_CHANNELS] = {0,0,0,0,0,0,0,0};
 unsigned long  ADC_last_millis = 0;
-int            ADC_sampling_period_ms = 200;
+uint16_t       ADC_sampling_period_ms = 200;
 
 /* SPI frames for the MAX5500 chip
            16 bits
@@ -145,7 +148,45 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 		const uint8_t val = digitalRead(pin_no);
 
 		// send answer back:
-		const uint8_t rx[] = { FRAME_START_FLAG, 0x81, 0x01, val, 0x00 + val, FRAME_END_FLAG };
+		const uint8_t rx[] = { FRAME_START_FLAG, 0x82, 0x01, pin_no, val, 0x00 +pin_no+ val/*checksum*/, FRAME_END_FLAG };
+		Serial.write(rx,sizeof(rx));
+	}
+	break;
+
+	case 0x20:
+	{
+		if (datalen!=sizeof(TFrameCMD_ADC_start_payload_t)) return;
+
+		TFrameCMD_ADC_start_payload_t adc_req;
+		memcpy(&adc_req,data, sizeof(adc_req));
+
+		// Setup vars for ADC task:
+		num_active_ADC_channels = 0;
+		for (int i=0;i<8;i++) {
+			ADC_active_channels[i] = 0;
+			if (adc_req.active_channels[i]>0) {
+				ADC_active_channels[i] = adc_req.active_channels[i];
+				num_active_ADC_channels++;
+			}
+		}
+		ADC_sampling_period_ms = adc_req.measure_period_ms;
+		
+		analogReference( adc_req.use_internal_refvolt ? INTERNAL : DEFAULT );
+
+		// send answer back:
+		const uint8_t rx[] = { FRAME_START_FLAG, 0x90, 0x00, 0x00, FRAME_END_FLAG };
+		Serial.write(rx,sizeof(rx));
+	}
+	break;
+
+	case 0x21:
+	{
+		if (datalen!=sizeof(TFrameCMD_ADC_stop_payload_t)) return;
+
+		num_active_ADC_channels = 0;
+
+		// send answer back:
+		const uint8_t rx[] = { FRAME_START_FLAG, 0x91, 0x00, 0x00, FRAME_END_FLAG };
 		Serial.write(rx,sizeof(rx));
 	}
 	break;
@@ -219,14 +260,23 @@ void processADCs()
 
 	ADC_last_millis = tnow;
 
-	int16_t ADC_readings[MAX_ADC_CHANNELS];
+	uint16_t ADC_readings[MAX_ADC_CHANNELS];
 	
 	for (uint8_t i=0;i<num_active_ADC_channels;i++)
 	{
 		ADC_readings[i] = analogRead(ADC_active_channels[i]);
 	}
 
-	// TODO: Send frame via USB!
+	// send answer back:
+	TFrame_ADC_readings tx;
+	tx.payload.timestamp_ms = millis();
+	for (int i=0;i<8;i++) {
+		tx.payload.adc_data[i] = ADC_readings[i];
+	}
+	tx.calc_and_update_checksum();
+
+	Serial.write((uint8_t*)&tx,sizeof(tx));
+
 }
 
 void loop()
