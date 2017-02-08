@@ -6,20 +6,25 @@
 
 #pragma once
 
-#include <ros/ros.h>
 #include <mrpt/hwdrivers/CSerialPort.h>
+
+#ifdef HAVE_ROS
+#include <ros/ros.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float64.h>
+#endif
 
-#include "arduinodaq2pc-structs.h"
+#include <mrpt/utils/COutputLogger.h>
+#include <arduinodaq2pc-structs.h>
 
 
-class ArduinoDAQ_LowLevel
+class ArduinoDAQ_LowLevel : public mrpt::utils::COutputLogger
 {
 public:
 	ArduinoDAQ_LowLevel();
 	virtual ~ArduinoDAQ_LowLevel();
 
+#ifdef HAVE_ROS
 	/**
 	* NodeHandle is the main access point to communications with the ROS system.
 	* The first NodeHandle constructed will fully initialize this node, and the last
@@ -30,6 +35,7 @@ public:
 
 	//ros::Publisher  m_pub_contr_status;
 	std::vector<ros::Subscriber> m_sub_auto_pos, m_sub_dac;
+#endif
 
 	/** called at startup, load params from ROS launch file and attempts to connect to the USB device
 	  * \return false on error */
@@ -37,6 +43,10 @@ public:
 
 	/** called when work is to be done */
 	bool iterate();
+
+	bool CMD_GPIO_output(int pin, bool pinState);
+	bool CMD_DAC(int dac_index, double dac_value_volts);
+
 
 protected:
 	// Local class members:
@@ -50,13 +60,10 @@ protected:
 	bool ReceiveFrameFromController(std::vector<uint8_t> &rx_data); //!< Tries to get a framed chunk of data from the controller.
 	bool WriteBinaryFrame( const uint8_t *full_frame, const size_t full_frame_len); //!< Sends a binary packet, in the expected format  (returns false on COMMS error)
 
-        bool CMD_GPIO_output(int pin, bool pinState);
-        bool CMD_DAC(int dac_index,double dac_value_volts);
 
-       
+#ifdef HAVE_ROS
 	void daqSetDigitalPinCallback(int index, const std_msgs::Bool::ConstPtr& msg);
 	void daqSetDACCallback(int dac_index, const std_msgs::Float64::ConstPtr& msg);
-
-	void prueba(const std_msgs::Bool::ConstPtr& msg);
+#endif
 
 };

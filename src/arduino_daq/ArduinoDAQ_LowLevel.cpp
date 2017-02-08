@@ -6,9 +6,12 @@
 
 #include <arduino_daq/ArduinoDAQ_LowLevel.h>
 #include <mrpt/system/threads.h> // for sleep()
-#include <ros/console.h>
 #include <arduino_daq/ArduinoDAQ_LowLevel.h>
 #include <functional>
+
+#ifdef HAVE_ROS
+#include <ros/console.h>
+#endif
 
 using namespace std;
 using namespace mrpt;
@@ -16,12 +19,28 @@ using namespace mrpt::utils;
 
 //#define DEBUG_TRACES
 
+#ifdef HAVE_ROS
+void log_callback(const std::string &msg, const mrpt::utils::VerbosityLevel level, const std::string &loggerName, const mrpt::system::TTimeStamp timestamp, void *userParam)
+{
+	ROS_INFO(msg);
+}
+#endif
+
 ArduinoDAQ_LowLevel::ArduinoDAQ_LowLevel() :
+	mrpt::utils::COutputLogger("ArduinoDAQ_LowLevel"),
+#ifdef HAVE_ROS
 	m_nh_params("~"),
+#endif
+#ifndef _WIN32
 	m_serial_port_name("/dev/serial/by-id/usb-FTDI_TTL232R-3V3_FT9J3NTD-if00-port0"),
+#else
+	m_serial_port_name("COM3"),
+#endif
 	m_serial_port_baudrate(9600)
 {
-
+#ifdef HAVE_ROS
+	this->logRegisterCallback(&log_callback, this);
+#endif
 }
 
 ArduinoDAQ_LowLevel::~ArduinoDAQ_LowLevel()
@@ -30,17 +49,19 @@ ArduinoDAQ_LowLevel::~ArduinoDAQ_LowLevel()
 
 bool ArduinoDAQ_LowLevel::initialize()
 {
+#ifdef HAVE_ROS
 	m_nh_params.getParam("SERIAL_PORT",m_serial_port_name);
 	m_nh_params.getParam("SERIAL_PORT_BAUDRATE",m_serial_port_baudrate);
+#endif
 
 	// Try to connect...
 	if (this->AttemptConnection())
 	{
-		ROS_INFO("Connection OK to ArduinoDAQ.");
+		MRPT_LOG_INFO("Connection OK to ArduinoDAQ.");
 	}
 
-	//m_pub_contr_status = m_nh.advertise<steer_controller::SteerControllerStatus>("steer_controller_status", 10);
 
+#ifdef HAVE_ROS
 	// Subscribers: GPIO outputs
 	m_sub_auto_pos.resize(13);
 	for (int i=0;i<13;i++) {
@@ -54,6 +75,8 @@ bool ArduinoDAQ_LowLevel::initialize()
 		auto fn = boost::bind(&ArduinoDAQ_LowLevel::daqSetDACCallback, this, i, _1);
 		m_sub_auto_pos[i] = m_nh.subscribe<std_msgs::Float64>( mrpt::format("arduino_daq_dac%i",i), 10, fn);
 	}
+#endif
+	return true;
 }
 
 bool ArduinoDAQ_LowLevel::iterate()
@@ -69,12 +92,13 @@ bool ArduinoDAQ_LowLevel::iterate()
 	while (++nFrames<MAX_FRAMES_PER_ITERATE && ReceiveFrameFromController(rxFrame))
 	{
 		// Process them:
-		//ROS_INFO_STREAM << "Rx frame, len=" << rxFrame.size();
+		//MRPT_LOG_INFO_STREAM  << "Rx frame, len=" << rxFrame.size();
 	}
 
 	return true;
 }
 
+#ifdef HAVE_ROS
 void ArduinoDAQ_LowLevel::daqSetDigitalPinCallback(int pin, const std_msgs::Bool::ConstPtr& msg)
 {
     ROS_INFO("GPIO: output[%i]=%s", pin, msg->data ? "true":"false" );
@@ -93,6 +117,7 @@ void ArduinoDAQ_LowLevel::daqSetDACCallback(int dac_index, const std_msgs::Float
     }
 
 }
+#endif
 
 bool ArduinoDAQ_LowLevel::AttemptConnection()
 {
@@ -109,7 +134,7 @@ bool ArduinoDAQ_LowLevel::AttemptConnection()
 	}
 	catch (exception &e)
 	{
-		ROS_ERROR("[ArduinoDAQ_LowLevel::AttemptConnection] COMMS error: %s", e.what() );
+		MRPT_LOG_DEBUG_FMT("[ArduinoDAQ_LowLevel::AttemptConnection] COMMS error: %s", e.what() );
 		return false;
 	}
 }
@@ -165,7 +190,7 @@ bool ArduinoDAQ_LowLevel::ReceiveFrameFromController(std::vector<uint8_t> &rxFra
 		{
 			nFrameBytes = 0;	// No es cabecera de trama correcta
 			buf[1]=buf[2]=0;
-			ROS_INFO("[rx] Reset frame (invalid len)");
+			MRPT_LOG_INFO("[rx] Reset frame (invalid len)");
 		}
 
 		size_t nBytesToRead;
@@ -273,4 +298,9 @@ bool ArduinoDAQ_LowLevel::CMD_DAC(int dac_index,double dac_value_volts)
     cmd.calc_and_update_checksum();
 
     return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd),sizeof(cmd));
+}
+
+bool ArduinoDAQ_LowLevel::IsConnected() const
+{
+	return m_serial.isOpen();
 }

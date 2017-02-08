@@ -10,6 +10,8 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
 )
 
+add_definitions(-DHAVE_ROS) # used to tell between building standalone lib vs. ROS node
+
 # System dependencies are found with CMake's conventions
 find_package(MRPT REQUIRED hwdrivers)
 

@@ -1,10 +1,11 @@
 arduino_daq
 ==================
 
-This package contains a ROS node for UAL eCAR's Arduino-based DAQ system,
-with 4 analog outputs (MAX5500) and GPIO support.
+This package contains a standalone C++ library and a ROS node for 
+UAL eCAR's Arduino-based DAQ system, with 4 analog outputs (MAX5500), 
+ADC inputs and GPIO support.
 
-Examples of use & demos:
+Examples of use & demos for ROS:
 
 * Launch:
 
@@ -48,4 +49,4 @@ ROS graph
 =======================
 
 
-<img width="300" src="https://raw.githubusercontent.com/ual-arm-ros-pkg/ual-ecar-ros-pkg/master/arduino_daq/doc/rosgraph_arduino_daq.png" />
+<img width="300" src="https://raw.githubusercontent.com/ual-arm-ros-pkg/arduino-daq-ros-pkg/master/doc/rosgraph_arduino_daq.png" />
