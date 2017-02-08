@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(arduino_daq)
 
+option(BUILD_ROS "Build ROS node" ON)
+option(BUILD_STANDALONE_LIB "Build standalone C++ library" OFF)
+
+
+IF (BUILD_ROS)
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -128,3 +134,10 @@ install(DIRECTORY include/${PROJECT_NAME}/
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+ENDIF() //BUILD_ROS
+
+
+IF(BUILD_STANDALONE_LIB)
+	ADD_SUBDIRECTORY(libarduinodaq)
+ENDIF()
