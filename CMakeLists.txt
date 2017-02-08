@@ -135,7 +135,7 @@ install(DIRECTORY include/${PROJECT_NAME}/
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-ENDIF() //BUILD_ROS
+ENDIF() # BUILD_ROS
 
 
 IF(BUILD_STANDALONE_LIB)
