@@ -8,10 +8,13 @@
 #include <mrpt/system/threads.h> // for sleep()
 #include <arduino_daq/ArduinoDAQ_LowLevel.h>
 #include <functional>
+#include <cstring>
 
 #ifdef HAVE_ROS
 #include <ros/console.h>
 #endif
+
+#include <iostream>
 
 using namespace std;
 using namespace mrpt;
@@ -148,7 +151,7 @@ bool ArduinoDAQ_LowLevel::AttemptConnection()
 
 		return true;
 	}
-	catch (exception &e)
+	catch (std::exception &e)
 	{
 		MRPT_LOG_DEBUG_FMT("[ArduinoDAQ_LowLevel::AttemptConnection] COMMS error: %s", e.what() );
 		return false;
@@ -223,7 +226,7 @@ bool ArduinoDAQ_LowLevel::ReceiveFrameFromController(std::vector<uint8_t> &rxFra
 		catch (std::exception &e)
 		{
 			// Disconnected?
-			cerr << "[ArduinoDAQ_LowLevel::ReceiveFrameFromController] Comms error: " << e.what() << endl;
+			std::cerr << "[ArduinoDAQ_LowLevel::ReceiveFrameFromController] Comms error: " << e.what() << std::endl;
 			return false;
 		}
 
@@ -272,7 +275,7 @@ bool ArduinoDAQ_LowLevel::ReceiveFrameFromController(std::vector<uint8_t> &rxFra
 	// Frame received
 	lengthField= buf[2]+5;
 	rxFrame.resize(lengthField);
-	memcpy( &rxFrame[0], &buf[0], lengthField);
+	::memcpy( &rxFrame[0], &buf[0], lengthField);
 
 #ifdef DEBUG_TRACES
 		{
