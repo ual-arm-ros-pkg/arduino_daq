@@ -164,7 +164,7 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 		num_active_ADC_channels = 0;
 		for (int i=0;i<8;i++) {
 			ADC_active_channels[i] = 0;
-			if (adc_req.active_channels[i]>0) {
+			if (adc_req.active_channels[i]>=0) {
 				ADC_active_channels[i] = adc_req.active_channels[i];
 				num_active_ADC_channels++;
 			}
@@ -260,7 +260,7 @@ void processADCs()
 
 	ADC_last_millis = tnow;
 
-	uint16_t ADC_readings[MAX_ADC_CHANNELS];
+	uint16_t ADC_readings[MAX_ADC_CHANNELS] =  {0,0,0,0,0,0,0,0};
 	
 	for (uint8_t i=0;i<num_active_ADC_channels;i++)
 	{
