@@ -14,7 +14,13 @@ include_directories(
 # Declare a C++ library
 file(GLOB lib_srcs  ${${PROJECT_NAME}_SOURCE_DIR}/../src/arduino_daq/*.cpp include/arduino_daq/*.h)
 
-add_library(${PROJECT_NAME}
+if (UNIX)
+	set (DEFLIBTYPE SHARED)
+else()
+	set(DEFLIBTYPE STATIC)
+endif()
+
+add_library(${PROJECT_NAME} ${DEFLIBTYPE}
    ${lib_srcs}
 )
 
