@@ -59,6 +59,7 @@ bool ArduinoDAQ_LowLevel::initialize()
 	{
 		MRPT_LOG_INFO("Connection OK to ArduinoDAQ.");
 	}
+	else return false;
 
 
 #ifdef HAVE_ROS
@@ -93,6 +94,21 @@ bool ArduinoDAQ_LowLevel::iterate()
 	{
 		// Process them:
 		//MRPT_LOG_INFO_STREAM  << "Rx frame, len=" << rxFrame.size();
+		if (rxFrame.size() >= 5)
+		{
+			switch (rxFrame[1])
+			{
+				case 0x92:
+				{
+					TFrame_ADC_readings rx;
+					::memcpy((uint8_t*)&rx, &rxFrame[0], sizeof(rx));
+
+					if (m_adc_callback)
+						m_adc_callback(rx.payload);
+					break;
+				}
+			};
+		}
 	}
 
 	return true;
@@ -303,4 +319,20 @@ bool ArduinoDAQ_LowLevel::CMD_DAC(int dac_index,double dac_value_volts)
 bool ArduinoDAQ_LowLevel::IsConnected() const
 {
 	return m_serial.isOpen();
+}
+
+bool ArduinoDAQ_LowLevel::CMD_ADC_START(const TFrameCMD_ADC_start_payload_t &adc_config)
+{
+	TFrameCMD_ADC_start cmd;
+	cmd.payload = adc_config;
+	cmd.calc_and_update_checksum();
+
+	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));
+}
+bool ArduinoDAQ_LowLevel::CMD_ADC_STOP()
+{
+	TFrameCMD_ADC_stop cmd;
+	cmd.calc_and_update_checksum();
+
+	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));
 }

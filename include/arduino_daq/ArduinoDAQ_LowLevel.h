@@ -16,6 +16,7 @@
 
 #include <mrpt/utils/COutputLogger.h>
 #include <arduinodaq2pc-structs.h>
+#include <functional>
 
 
 class ArduinoDAQ_LowLevel : public mrpt::utils::COutputLogger
@@ -37,6 +38,13 @@ public:
 	std::vector<ros::Subscriber> m_sub_auto_pos, m_sub_dac;
 #endif
 
+	void setSerialPort(const std::string &sSerialName) {
+		m_serial_port_name = sSerialName;
+	}
+	std::string getSerialPort() const {
+		return m_serial_port_name;
+	}
+
 	/** called at startup, load params from ROS launch file and attempts to connect to the USB device
 	  * \return false on error */
 	bool initialize();
@@ -46,7 +54,12 @@ public:
 
 	bool CMD_GPIO_output(int pin, bool pinState);
 	bool CMD_DAC(int dac_index, double dac_value_volts);
+	bool CMD_ADC_START(const TFrameCMD_ADC_start_payload_t &adc_config);
+	bool CMD_ADC_STOP();
 
+	void set_ADC_readings_callback(const std::function<void(TFrame_ADC_readings_payload_t)> &f) {
+		m_adc_callback = f;
+	}
 
 protected:
 	// Local class members:
@@ -60,6 +73,7 @@ protected:
 	bool ReceiveFrameFromController(std::vector<uint8_t> &rx_data); //!< Tries to get a framed chunk of data from the controller.
 	bool WriteBinaryFrame( const uint8_t *full_frame, const size_t full_frame_len); //!< Sends a binary packet, in the expected format  (returns false on COMMS error)
 
+	std::function<void(TFrame_ADC_readings_payload_t)> m_adc_callback;
 
 #ifdef HAVE_ROS
 	void daqSetDigitalPinCallback(int index, const std_msgs::Bool::ConstPtr& msg);
