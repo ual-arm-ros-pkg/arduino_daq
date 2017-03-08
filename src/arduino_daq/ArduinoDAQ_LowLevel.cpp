@@ -25,7 +25,7 @@ using namespace mrpt::utils;
 #ifdef HAVE_ROS
 void log_callback(const std::string &msg, const mrpt::utils::VerbosityLevel level, const std::string &loggerName, const mrpt::system::TTimeStamp timestamp, void *userParam)
 {
-	ROS_INFO(msg);
+	ROS_INFO("%s",msg.c_str());
 }
 #endif
 
