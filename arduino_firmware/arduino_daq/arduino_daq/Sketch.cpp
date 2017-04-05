@@ -10,12 +10,15 @@
 
 #include <Wire.h>
 #include <SPI.h>
+
 //Beginning of Auto generated function prototypes by Atmel Studio
 //End of Auto generated function prototypes by Atmel Studio
 
 // Pin mapping:
 const int PIN_DAC_MAX5500_CS  = 9;
-const int PIN_LED             =  13;
+const int PIN_LED             = 13;
+const int PIN_PULSE_COUNTER   = 2;    // PCINT0
+
 
 // ADC reading subsystem:
 uint8_t        num_active_ADC_channels = 0;
@@ -23,6 +26,10 @@ const uint8_t  MAX_ADC_CHANNELS = 8;
 uint8_t        ADC_active_channels[MAX_ADC_CHANNELS] = {0,0,0,0,0,0,0,0};
 unsigned long  ADC_last_millis = 0;
 uint16_t       ADC_sampling_period_ms = 200;
+
+unsigned long  PC_last_millis = 0;
+uint16_t       PC_sampling_period_ms = 500;
+
 
 /* SPI frames for the MAX5500 chip
            16 bits
@@ -79,6 +86,12 @@ void mod_dac_max5500_update_single_DAC(uint8_t dac_idx, uint16_t dac_value)
 	mod_dac_max5500_send_spi_word(tx_word);
 }
 
+uint16_t  PULSE_COUNTER = 0;
+
+void onPulseEdge()
+{
+	PULSE_COUNTER++;
+}
 
 void setup()
 {
@@ -93,6 +106,9 @@ void setup()
 
 	// Enable ADC with internal reference:
 	analogReference(INTERNAL);
+
+	attachInterrupt(digitalPinToInterrupt(PIN_PULSE_COUNTER), &onPulseEdge, RISING );
+
 
 	Serial.begin(9600);
 }
@@ -276,12 +292,39 @@ void processADCs()
 	tx.calc_and_update_checksum();
 
 	Serial.write((uint8_t*)&tx,sizeof(tx));
+}
 
+void processPulseCounter()
+{
+	const unsigned long tnow = millis();
+	if (tnow-PC_last_millis < PC_sampling_period_ms)
+	return;
+
+	PC_last_millis = tnow;
+
+	uint16_t read_pulses;
+
+	// ATOMIC READ:
+	noInterrupts();
+	read_pulses = PULSE_COUNTER;
+	PULSE_COUNTER=0;
+	interrupts();
+
+	// send answer back:
+	TFrame_PULSE_COUNTER_readings tx;
+	tx.payload.timestamp_ms = millis();
+	tx.payload.period_ms = PC_sampling_period_ms;
+	tx.payload.pulse_counter = read_pulses;
+	
+	tx.calc_and_update_checksum();
+
+	Serial.write((uint8_t*)&tx,sizeof(tx));
 }
 
 void loop()
 {
 	processIncommingPkts();
 	processADCs();
+	processPulseCounter();
 
 }

@@ -50,6 +50,7 @@ Communication PC <-> arduino happens based on data frames as follow:
 	* 0x90: Start ADC ACK.
 	* 0x91: Stop ADC ACK.
 	* 0x92: ADC readings.
+	* 0x93: Pulse counter readings.
 	* 0xfe: Unknown command opcode. (Error)
 
 ROS graph

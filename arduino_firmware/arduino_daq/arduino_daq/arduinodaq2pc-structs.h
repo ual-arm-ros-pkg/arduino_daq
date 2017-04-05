@@ -138,6 +138,21 @@ struct TFrame_ADC_readings : public TBaseFrame<TFrame_ADC_readings_payload_t>
 	}
 };
 
+struct TFrame_PULSE_COUNTER_readings_payload_t
+{
+	uint32_t timestamp_ms;
+	uint16_t pulse_counter;
+	uint32_t period_ms;
+};
+struct TFrame_PULSE_COUNTER_readings : public TBaseFrame<TFrame_PULSE_COUNTER_readings_payload_t>
+{
+	// Defaults:
+	TFrame_PULSE_COUNTER_readings() : TBaseFrame(0x93)
+	{
+	}
+};
+
+
 #if !defined(__AVR_MEGA__)
 #	pragma pack(pop)
 #endif
