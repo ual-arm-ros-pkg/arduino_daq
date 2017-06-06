@@ -56,11 +56,33 @@ START_FLAG   |  OPCODE  |  DATA_LEN   |   DATA      |    CHECKSUM    | END_FLAG 
 	* DATA[0]   = Arduino-based pin number
 * 0x20: Start ADC continuous acquisition task
 * 0x21: Stop ADC task
-
 */
 
 #define FRAME_START_FLAG  0x69
 #define FRAME_END_FLAG    0x96
+
+enum opcode_t {
+	// COMMANDS PC -> Arduino
+	// -----------------------------
+	OP_SET_DAC   = 0x10,
+	OP_SET_GPIO  = 0x11,
+	OP_GET_GPIO  = 0x12,
+	OP_START_CONT_ADC = 0x20,
+	OP_STOP_CONT_ADC = 0x21,
+	
+	// Responses Arduino -> PC
+	// -----------------------------
+	RESP_SET_DAC     = OP_SET_DAC + 0x70,
+	RESP_SET_GPIO    = OP_SET_GPIO + 0x70,
+	RESP_GET_GPIO    = OP_GET_GPIO + 0x70,
+	RESP_START_CONT_ADC   = OP_START_CONT_ADC + 0x70,
+	RESP_STOP_CONT_ADC    = OP_STOP_CONT_ADC + 0x70,
+	
+	
+	// error code:
+	RESP_ERROR    = 0xfe
+};
+
 
 template <typename Payload>
 struct TBaseFrame
@@ -106,7 +128,7 @@ struct TFrameCMD_SetDAC_payload_t
 struct TFrameCMD_SetDAC : public TBaseFrame<TFrameCMD_SetDAC_payload_t>
 {
     // Defaults:
-    TFrameCMD_SetDAC() : TBaseFrame(0x10)
+    TFrameCMD_SetDAC() : TBaseFrame(OP_SET_DAC)
     {
     }
 };
@@ -114,15 +136,28 @@ struct TFrameCMD_SetDAC : public TBaseFrame<TFrameCMD_SetDAC_payload_t>
 struct TFrameCMD_GPIO_output_payload_t
 {
     uint8_t  pin_index;
-    uint8_t  pin_value;;
+    uint8_t  pin_value;
 };
 struct TFrameCMD_GPIO_output : public TBaseFrame<TFrameCMD_GPIO_output_payload_t>
 {
     // Defaults:
-    TFrameCMD_GPIO_output() : TBaseFrame(0x11)
+    TFrameCMD_GPIO_output() : TBaseFrame(OP_SET_GPIO)
     {
     }
 };
+
+struct TFrameCMD_GPIO_read_payload_t
+{
+	uint8_t  pin_index;
+};
+struct TFrameCMD_GPIO_read : public TBaseFrame<TFrameCMD_GPIO_read_payload_t>
+{
+	// Defaults:
+	TFrameCMD_GPIO_read() : TBaseFrame(OP_GET_GPIO)
+	{
+	}
+};
+
 
 struct TFrameCMD_ADC_start_payload_t
 {
@@ -144,7 +179,7 @@ struct TFrameCMD_ADC_start_payload_t
 struct TFrameCMD_ADC_start : public TBaseFrame<TFrameCMD_ADC_start_payload_t>
 {
 	// Defaults:
-	TFrameCMD_ADC_start() : TBaseFrame(0x20)
+	TFrameCMD_ADC_start() : TBaseFrame(OP_START_CONT_ADC)
 	{
 	}
 };
@@ -155,7 +190,7 @@ struct TFrameCMD_ADC_stop_payload_t
 struct TFrameCMD_ADC_stop : public TBaseFrame<TFrameCMD_ADC_stop_payload_t>
 {
 	// Defaults:
-	TFrameCMD_ADC_stop() : TBaseFrame(0x21)
+	TFrameCMD_ADC_stop() : TBaseFrame(OP_STOP_CONT_ADC)
 	{
 	}
 };

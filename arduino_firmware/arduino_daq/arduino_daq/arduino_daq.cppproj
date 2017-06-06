@@ -210,7 +210,34 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Sketch.cpp">
+    <Compile Include="arduinodaq_declarations.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="arduinodaq2pc-structs.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="config.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="main.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="mod_dac_max5500.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="mod_dac_max5500.h">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="process_ADCs.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="process_command.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="process_encoder.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="serial.cpp">
       <SubType>compile</SubType>
     </Compile>
     <Content Include="readme.html">
