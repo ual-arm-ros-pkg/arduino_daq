@@ -91,23 +91,41 @@ bool ArduinoDAQ_LowLevel::initialize()
 	{
 		MRPT_LOG_INFO("Connection OK to ArduinoDAQ.");
 	}
-	else return false;
-
+	else
+	{
+		MRPT_LOG_ERROR("Error in ArduinoDAQ_LowLevel::AttemptConnection()!");
+		return false;
+	}
 
 #ifdef HAVE_ROS
 	// Subscribers: GPIO outputs
-	m_sub_auto_pos.resize(13);
+	m_sub_GPIO_outputs.resize(13);
 	for (int i=0;i<13;i++) {
 		auto fn = boost::bind(&ArduinoDAQ_LowLevel::daqSetDigitalPinCallback, this, i, _1);
-		m_sub_auto_pos[i] = m_nh.subscribe<std_msgs::Bool>( mrpt::format("arduino_daq_GPIO_output%i",i), 10, fn);
+		m_sub_GPIO_outputs[i] = m_nh.subscribe<std_msgs::Bool>( mrpt::format("arduino_daq_GPIO_output%i",i), 10, fn);
 	}
 
 	// Subscribers: DAC outputs
 	m_sub_dac.resize(4);
 	for (int i=0;i<4;i++) {
 		auto fn = boost::bind(&ArduinoDAQ_LowLevel::daqSetDACCallback, this, i, _1);
-		m_sub_auto_pos[i] = m_nh.subscribe<std_msgs::Float64>( mrpt::format("arduino_daq_dac%i",i), 10, fn);
+		m_sub_dac[i] = m_nh.subscribe<std_msgs::Float64>( mrpt::format("arduino_daq_dac%i",i), 10, fn);
 	}
+
+
+	// Subscribers: PWM outputs
+	// (From: https://www.arduino.cc/en/Reference/analogWrite)
+	// On most Arduino boards (those with the ATmega168 or ATmega328), this function works on pins 3, 5, 6, 9, 10, and 11.
+	const int PWM_pins[] = {3, 5, 6, 9, 10, 11};
+	const int num_PWM_pins = sizeof(PWM_pins)/sizeof(PWM_pins[0]);
+
+	m_sub_PWM_outputs.resize(num_PWM_pins);
+	for (int i=0;i<num_PWM_pins;i++) {
+		int pin = PWM_pins[i];
+		auto fn = boost::bind(&ArduinoDAQ_LowLevel::daqSetPWMCallback, this, pin, _1);
+		m_sub_PWM_outputs[i] = m_nh.subscribe<std_msgs::UInt8>( mrpt::format("arduino_daq_pwm%i",pin), 10, fn);
+	}
+
 #endif
 	return true;
 }
@@ -165,6 +183,16 @@ void ArduinoDAQ_LowLevel::daqSetDACCallback(int dac_index, const std_msgs::Float
     }
 
 }
+
+void ArduinoDAQ_LowLevel::daqSetPWMCallback(int pwm_pin_index, const std_msgs::UInt8::ConstPtr& msg)
+{
+	ROS_INFO("PWM: pin%i=%i ", pwm_pin_index, (int)msg->data);
+
+    if (!CMD_PWM(pwm_pin_index,msg->data)) {
+        ROS_ERROR("*** Error sending CMD_PWM!!! ***");
+    }
+}
+
 #endif
 
 bool ArduinoDAQ_LowLevel::AttemptConnection()
@@ -182,7 +210,7 @@ bool ArduinoDAQ_LowLevel::AttemptConnection()
 	}
 	catch (std::exception &e)
 	{
-		MRPT_LOG_DEBUG_FMT("[ArduinoDAQ_LowLevel::AttemptConnection] COMMS error: %s", e.what() );
+		MRPT_LOG_ERROR_FMT("[ArduinoDAQ_LowLevel::AttemptConnection] COMMS error: %s", e.what() );
 		return false;
 	}
 }
@@ -364,6 +392,16 @@ bool ArduinoDAQ_LowLevel::CMD_ADC_START(const TFrameCMD_ADC_start_payload_t &adc
 bool ArduinoDAQ_LowLevel::CMD_ADC_STOP()
 {
 	TFrameCMD_ADC_stop cmd;
+	cmd.calc_and_update_checksum();
+
+	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));
+}
+
+bool ArduinoDAQ_LowLevel::CMD_PWM(int pin_index, uint8_t pwm_value)
+{
+	TFrameCMD_SET_PWM cmd;
+	cmd.payload.pin_index = pin_index;
+	cmd.payload.analog_value = pwm_value;
 	cmd.calc_and_update_checksum();
 
 	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));

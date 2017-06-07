@@ -39,6 +39,7 @@
 
 #ifdef HAVE_ROS
 #include <ros/ros.h>
+#include <std_msgs/UInt8.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float64.h>
 #endif
@@ -63,8 +64,7 @@ public:
 	ros::NodeHandle m_nh;
 	ros::NodeHandle m_nh_params;
 
-	//ros::Publisher  m_pub_contr_status;
-	std::vector<ros::Subscriber> m_sub_auto_pos, m_sub_dac;
+	std::vector<ros::Subscriber> m_sub_GPIO_outputs, m_sub_dac, m_sub_PWM_outputs;
 #endif
 
 	void setSerialPort(const std::string &sSerialName) {
@@ -85,6 +85,7 @@ public:
 	bool CMD_DAC(int dac_index, double dac_value_volts);
 	bool CMD_ADC_START(const TFrameCMD_ADC_start_payload_t &adc_config);
 	bool CMD_ADC_STOP();
+	bool CMD_PWM(int pin_index, uint8_t pwm_value);
 
 	void set_ADC_readings_callback(const std::function<void(TFrame_ADC_readings_payload_t)> &f) {
 		m_adc_callback = f;
@@ -107,6 +108,7 @@ protected:
 #ifdef HAVE_ROS
 	void daqSetDigitalPinCallback(int index, const std_msgs::Bool::ConstPtr& msg);
 	void daqSetDACCallback(int dac_index, const std_msgs::Float64::ConstPtr& msg);
+	void daqSetPWMCallback(int pwm_pin_index, const std_msgs::UInt8::ConstPtr& msg);
 #endif
 
 };
