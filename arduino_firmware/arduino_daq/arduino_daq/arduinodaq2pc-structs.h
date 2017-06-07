@@ -71,7 +71,7 @@ enum opcode_t {
 	OP_START_CONT_ADC  = 0x20,
 	OP_STOP_CONT_ADC   = 0x21,
 	OP_SET_PWM         = 0x25,
-	
+
 	// -----------------------------
 	// Responses Arduino -> PC
 	// -----------------------------
@@ -82,6 +82,8 @@ enum opcode_t {
 	RESP_GET_GPIO         = OP_GET_GPIO + RESP_OFFSET,
 	RESP_START_CONT_ADC   = OP_START_CONT_ADC + RESP_OFFSET,
 	RESP_STOP_CONT_ADC    = OP_STOP_CONT_ADC + RESP_OFFSET,
+	RESP_ADC_READINGS     = 0x92,
+	RESP_ENCODER_READINGS = 0x93,
 	RESP_SET_PWM          = OP_SET_PWM + RESP_OFFSET,
 
 
@@ -113,9 +115,9 @@ struct TBaseFrame
 
     void calc_and_update_checksum()
     {
-        CHECKSUM = calc_checksum();    
+        CHECKSUM = calc_checksum();
     }
-    
+
     uint8_t calc_checksum() const
     {
         const uint8_t len   = DATALEN; //reinterpret_cast<const uint8_t*>(ptr_frame)[2];
@@ -177,8 +179,8 @@ struct TFrameCMD_ADC_start_payload_t
 		measure_period_ms(200),
 		use_internal_refvolt(0)
 	{
-		for (int i=0;i<8;i++) { 
-			active_channels[i]=-1; 
+		for (int i=0;i<8;i++) {
+			active_channels[i]=-1;
 		}
 	}
 };
@@ -205,7 +207,7 @@ struct TFrameCMD_SET_PWM_payload_t
 {
 	uint8_t  pin_index;
 	uint8_t  analog_value; //!< 0-255 maps to 0% to 100% duty cycle
-	TFrameCMD_SET_PWM_payload_t() : 
+	TFrameCMD_SET_PWM_payload_t() :
 		pin_index(0),
 		analog_value(0)
 	{
@@ -227,7 +229,7 @@ struct TFrame_ADC_readings_payload_t
 struct TFrame_ADC_readings : public TBaseFrame<TFrame_ADC_readings_payload_t>
 {
 	// Defaults:
-	TFrame_ADC_readings() : TBaseFrame(0x92)
+	TFrame_ADC_readings() : TBaseFrame(RESP_ADC_READINGS)
 	{
 	}
 };
@@ -241,7 +243,7 @@ struct TFrame_PULSE_COUNTER_readings_payload_t
 struct TFrame_PULSE_COUNTER_readings : public TBaseFrame<TFrame_PULSE_COUNTER_readings_payload_t>
 {
 	// Defaults:
-	TFrame_PULSE_COUNTER_readings() : TBaseFrame(0x93)
+	TFrame_PULSE_COUNTER_readings() : TBaseFrame(RESP_ENCODER_READINGS)
 	{
 	}
 };

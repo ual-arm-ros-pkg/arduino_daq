@@ -27,6 +27,13 @@ add_definitions(-std=c++11)
 ################################################
 ## Declare ROS messages, services and actions ##
 ################################################
+add_message_files(
+  DIRECTORY msg
+  FILES
+  AnalogReading.msg
+)
+
+generate_messages(DEPENDENCIES std_msgs)
 
 ###################################
 ## catkin specific configuration ##
@@ -47,7 +54,6 @@ CATKIN_DEPENDS std_msgs
 ###########
 ## Build ##
 ###########
-
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)

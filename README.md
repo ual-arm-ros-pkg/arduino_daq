@@ -19,6 +19,10 @@ you want to compile a ROS node or a standalone C++ library.
 For compilation within a [ROS catkin](http://wiki.ros.org/catkin) environment, simple clone
 this repository inside your `~/catkin_ws/src/` and run `catkin_make`.
 
+Prerequisites:
+
+        sudo apt install libmrpt-dev
+
 ROS examples of use
 =====================
 
@@ -28,7 +32,7 @@ Note: Numering of pins follows the `Arduino pin number` convention
 * **First**: Launch the node with
 
        roscore     # In one terminal
-       rosrun arduino_daq arduino_daq_node \_SERIAL_PORT:=/dev/ttyUSB0    # In another terminal
+       rosrun arduino_daq arduino_daq_node _SERIAL_PORT:=/dev/ttyUSB0    # In another terminal
 
 Next, in another terminal try any of the following:
 
@@ -43,6 +47,12 @@ Next, in another terminal try any of the following:
 * Setting a PWM output (0...255 maps to 0%...100% duty cycle):
 
         rostopic pub /arduino_daq_pwm3 std_msgs/UInt8 220
+
+* Automatically starting ADC sampling at 10 Hz, with 5V reference voltage, on two
+channels in pins ADC0 and ADC1 (Requires killing `arduino_daq` to launch it again
+with these parameters).
+
+        rosrun arduino_daq arduino_daq_node _SERIAL_PORT:=/dev/ttyUSB0 _ADC_INTERNAL_REFVOLT:=0 _ADC_MEASURE_PERIOD_MS:=100 _ADC_CHANNEL0:=0 _ADC_CHANNEL1:=1
 
 
 ROS graph

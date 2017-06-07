@@ -65,6 +65,7 @@ public:
 	ros::NodeHandle m_nh_params;
 
 	std::vector<ros::Subscriber> m_sub_GPIO_outputs, m_sub_dac, m_sub_PWM_outputs;
+	ros::Publisher  m_pub_ADC;
 #endif
 
 	void setSerialPort(const std::string &sSerialName) {
@@ -109,6 +110,7 @@ protected:
 	void daqSetDigitalPinCallback(int index, const std_msgs::Bool::ConstPtr& msg);
 	void daqSetDACCallback(int dac_index, const std_msgs::Float64::ConstPtr& msg);
 	void daqSetPWMCallback(int pwm_pin_index, const std_msgs::UInt8::ConstPtr& msg);
+	void daqOnNewADCCallback(const TFrame_ADC_readings_payload_t &data);
 #endif
 
 };

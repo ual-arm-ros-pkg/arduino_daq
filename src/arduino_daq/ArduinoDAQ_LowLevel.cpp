@@ -36,6 +36,7 @@
 #include <arduino_daq/ArduinoDAQ_LowLevel.h>
 #include <mrpt/system/threads.h> // for sleep()
 #include <arduino_daq/ArduinoDAQ_LowLevel.h>
+#include <arduino_daq/AnalogReading.h>
 #include <functional>
 #include <cstring>
 
@@ -126,7 +127,51 @@ bool ArduinoDAQ_LowLevel::initialize()
 		m_sub_PWM_outputs[i] = m_nh.subscribe<std_msgs::UInt8>( mrpt::format("arduino_daq_pwm%i",pin), 10, fn);
 	}
 
+  // Publisher: ADC data
+	m_pub_ADC = m_nh.advertise<arduino_daq::AnalogReading>("arduino_daq_adc", 10);
+
+
+	// Only for ROS:
+	// If provided via params, automatically start ADC conversion:
+	{
+		int ADC_INTERNAL_REFVOLT = 0;
+		m_nh_params.getParam("ADC_INTERNAL_REFVOLT",ADC_INTERNAL_REFVOLT);
+
+		int ADC_MEASURE_PERIOD_MS = 100;
+		m_nh_params.getParam("ADC_MEASURE_PERIOD_MS",ADC_MEASURE_PERIOD_MS);
+
+		TFrameCMD_ADC_start_payload_t cmd;
+		bool any_active = false;
+		for (int i=0;i<8;i++)
+		{
+			int ch = -1;
+			m_nh_params.getParam(mrpt::format("ADC_CHANNEL%i",i),ch);
+			cmd.active_channels[i] = ch;
+			if (ch!=-1) any_active=true;
+		}
+
+		if (any_active)
+		{
+			cmd.use_internal_refvolt = ADC_INTERNAL_REFVOLT ? 1:0;
+			cmd.measure_period_ms = ADC_MEASURE_PERIOD_MS;
+
+			ROS_INFO("Starting continuous ADC readings with: "
+				"int_ref_volt=%i "
+				"measure_period_ms=%i ms"
+				"channels: %i %i %i %i %i %i %i %i"
+				,
+				cmd.use_internal_refvolt,
+				cmd.measure_period_ms,
+				cmd.active_channels[0],cmd.active_channels[1],cmd.active_channels[2],cmd.active_channels[3],
+				cmd.active_channels[4],cmd.active_channels[5],cmd.active_channels[6],cmd.active_channels[7]
+			);
+			this->CMD_ADC_START(cmd);
+		}
+	}
+
+
 #endif
+
 	return true;
 }
 
@@ -148,13 +193,15 @@ bool ArduinoDAQ_LowLevel::iterate()
 		{
 			switch (rxFrame[1])
 			{
-				case 0x92:
+				case RESP_ADC_READINGS:
 				{
 					TFrame_ADC_readings rx;
 					::memcpy((uint8_t*)&rx, &rxFrame[0], sizeof(rx));
 
-					if (m_adc_callback)
+					if (m_adc_callback) {
 						m_adc_callback(rx.payload);
+					}
+					daqOnNewADCCallback(rx.payload);
 					break;
 				}
 			};
@@ -193,6 +240,17 @@ void ArduinoDAQ_LowLevel::daqSetPWMCallback(int pwm_pin_index, const std_msgs::U
     }
 }
 
+void ArduinoDAQ_LowLevel::daqOnNewADCCallback(const TFrame_ADC_readings_payload_t &data)
+{
+	arduino_daq::AnalogReading msg;
+
+	msg.timestamp_ms = data.timestamp_ms;
+	for (int i=0;i<sizeof(data.adc_data)/sizeof(data.adc_data[0]);i++) {
+		 msg.adc_data[i] = data.adc_data[i];
+	}
+
+	m_pub_ADC.publish(msg);
+}
 #endif
 
 bool ArduinoDAQ_LowLevel::AttemptConnection()
