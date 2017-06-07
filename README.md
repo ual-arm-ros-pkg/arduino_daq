@@ -1,7 +1,7 @@
 arduino_daq
 ==================
 
-This package contains an ARM firmware, a host standalone C++ library,
+This package contains an AVR8 firmware, a host standalone C++ library,
 and a ROS node for UAL eCAR's Arduino-based DAQ system, with 4 analog
 outputs (MAX5500), ADC inputs, GPIO, PWM and quadrature encoder
 decoding support.
