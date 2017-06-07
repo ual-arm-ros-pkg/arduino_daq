@@ -62,23 +62,29 @@ START_FLAG   |  OPCODE  |  DATA_LEN   |   DATA      |    CHECKSUM    | END_FLAG 
 #define FRAME_END_FLAG    0x96
 
 enum opcode_t {
+	// -----------------------------
 	// COMMANDS PC -> Arduino
 	// -----------------------------
-	OP_SET_DAC   = 0x10,
-	OP_SET_GPIO  = 0x11,
-	OP_GET_GPIO  = 0x12,
-	OP_START_CONT_ADC = 0x20,
-	OP_STOP_CONT_ADC = 0x21,
+	OP_SET_DAC         = 0x10,
+	OP_SET_GPIO        = 0x11,
+	OP_GET_GPIO        = 0x12,
+	OP_START_CONT_ADC  = 0x20,
+	OP_STOP_CONT_ADC   = 0x21,
+	OP_SET_PWM         = 0x25,
 	
+	// -----------------------------
 	// Responses Arduino -> PC
 	// -----------------------------
-	RESP_SET_DAC     = OP_SET_DAC + 0x70,
-	RESP_SET_GPIO    = OP_SET_GPIO + 0x70,
-	RESP_GET_GPIO    = OP_GET_GPIO + 0x70,
-	RESP_START_CONT_ADC   = OP_START_CONT_ADC + 0x70,
-	RESP_STOP_CONT_ADC    = OP_STOP_CONT_ADC + 0x70,
-	
-	
+	RESP_OFFSET = 0x70,
+	// -----------------------------
+	RESP_SET_DAC          = OP_SET_DAC + RESP_OFFSET,
+	RESP_SET_GPIO         = OP_SET_GPIO + RESP_OFFSET,
+	RESP_GET_GPIO         = OP_GET_GPIO + RESP_OFFSET,
+	RESP_START_CONT_ADC   = OP_START_CONT_ADC + RESP_OFFSET,
+	RESP_STOP_CONT_ADC    = OP_STOP_CONT_ADC + RESP_OFFSET,
+	RESP_SET_PWM          = OP_SET_PWM + RESP_OFFSET,
+
+
 	// error code:
 	RESP_ERROR    = 0xfe
 };
@@ -191,6 +197,24 @@ struct TFrameCMD_ADC_stop : public TBaseFrame<TFrameCMD_ADC_stop_payload_t>
 {
 	// Defaults:
 	TFrameCMD_ADC_stop() : TBaseFrame(OP_STOP_CONT_ADC)
+	{
+	}
+};
+
+struct TFrameCMD_SET_PWM_payload_t
+{
+	uint8_t  pin_index;
+	uint8_t  analog_value; //!< 0-255 maps to 0% to 100% duty cycle
+	TFrameCMD_SET_PWM_payload_t() : 
+		pin_index(0),
+		analog_value(0)
+	{
+	}
+};
+struct TFrameCMD_SET_PWM : public TBaseFrame<TFrameCMD_SET_PWM_payload_t>
+{
+	// Defaults:
+	TFrameCMD_SET_PWM() : TBaseFrame(RESP_SET_PWM)
 	{
 	}
 };

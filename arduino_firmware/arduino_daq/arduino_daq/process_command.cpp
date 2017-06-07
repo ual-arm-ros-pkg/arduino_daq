@@ -74,7 +74,7 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 	{
 	case OP_SET_DAC:
 	{
-		if (datalen!=3) return;
+		if (datalen!=sizeof(TFrameCMD_SetDAC_payload_t)) return;
 		
 		// Init upon first usage:
 		static bool dac_init = false;
@@ -94,7 +94,7 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 	break;
 	case OP_SET_GPIO:
 	{
-		if (datalen!=2) return;
+		if (datalen!=sizeof(TFrameCMD_GPIO_output_payload_t)) return;
 
 		const uint8_t pin_no = data[0];
 		const uint8_t pin_val = data[1];
@@ -108,7 +108,7 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 	break;
 	case OP_GET_GPIO:
 	{
-		if (datalen!=1) return;
+		if (datalen!=sizeof(TFrameCMD_GPIO_read_payload_t)) return;
 
 		const uint8_t pin_no = data[0];
 		pinMode(pin_no, INPUT);
@@ -155,6 +155,21 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 
 		// send answer back:
 		const uint8_t rx[] = { FRAME_START_FLAG, RESP_STOP_CONT_ADC, 0x00, 0x00, FRAME_END_FLAG };
+		Serial.write(rx,sizeof(rx));
+	}
+	break;
+
+	case OP_SET_PWM:
+	{
+		if (datalen!=sizeof(TFrameCMD_SET_PWM_payload_t)) return;
+
+		TFrameCMD_SET_PWM_payload_t pwm_req;
+		memcpy(&pwm_req,data, sizeof(pwm_req));
+
+		analogWrite(pwm_req.pin_index, pwm_req.analog_value);
+
+		// send answer back:
+		const uint8_t rx[] = { FRAME_START_FLAG, RESP_SET_PWM, 0x00, 0x00, FRAME_END_FLAG };
 		Serial.write(rx,sizeof(rx));
 	}
 	break;
