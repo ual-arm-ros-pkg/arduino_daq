@@ -165,6 +165,7 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 		TFrameCMD_SET_PWM_payload_t pwm_req;
 		memcpy(&pwm_req,data, sizeof(pwm_req));
 
+		pinMode(pwm_req.pin_index, OUTPUT);
 		analogWrite(pwm_req.pin_index, pwm_req.analog_value);
 
 		// send answer back:
