@@ -87,8 +87,9 @@ enum opcode_t {
 	RESP_SET_PWM          = OP_SET_PWM + RESP_OFFSET,
 
 
-	// error code:
-	RESP_ERROR    = 0xfe
+	// error codes:
+	RESP_WRONG_LEN         = 0xfd,
+	RESP_UNKNOWN_OPCODE    = 0xfe
 };
 
 

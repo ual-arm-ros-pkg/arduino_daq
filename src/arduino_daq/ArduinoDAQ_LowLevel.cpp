@@ -50,7 +50,7 @@ using namespace std;
 using namespace mrpt;
 using namespace mrpt::utils;
 
-//#define DEBUG_TRACES
+#define DEBUG_TRACES
 
 #ifdef HAVE_ROS
 void log_callback(const std::string &msg, const mrpt::utils::VerbosityLevel level, const std::string &loggerName, const mrpt::system::TTimeStamp timestamp, void *userParam)
@@ -69,7 +69,7 @@ ArduinoDAQ_LowLevel::ArduinoDAQ_LowLevel() :
 #else
 	m_serial_port_name("COM3"),
 #endif
-	m_serial_port_baudrate(9600)
+	m_serial_port_baudrate(115200)
 {
 #ifdef HAVE_ROS
 	this->logRegisterCallback(&log_callback, this);
