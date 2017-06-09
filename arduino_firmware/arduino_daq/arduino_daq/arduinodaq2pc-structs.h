@@ -217,7 +217,7 @@ struct TFrameCMD_SET_PWM_payload_t
 struct TFrameCMD_SET_PWM : public TBaseFrame<TFrameCMD_SET_PWM_payload_t>
 {
 	// Defaults:
-	TFrameCMD_SET_PWM() : TBaseFrame(RESP_SET_PWM)
+	TFrameCMD_SET_PWM() : TBaseFrame(OP_SET_PWM)
 	{
 	}
 };
