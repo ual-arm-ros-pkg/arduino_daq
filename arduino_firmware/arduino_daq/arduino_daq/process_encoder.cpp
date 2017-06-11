@@ -39,26 +39,109 @@
 
 #include "arduinodaq2pc-structs.h"
 
-#include "mod_dac_max5500.h"
-
-// Originally designed for atmega328P.
-// --------------------------------------
-
 #include <Wire.h>
-#include <SPI.h>
+//#include <SPI.h>
 
-//Beginning of Auto generated function prototypes by Atmel Studio
-//End of Auto generated function prototypes by Atmel Studio
-
-// Fixed pins configuration for this hardware:
-#include "config.h"
 
 unsigned long  PC_last_millis = 0;
 uint16_t       PC_sampling_period_ms = 500;
+int8_t enc0A_pin=0, enc1A_pin=0;
 
-//	attachInterrupt(digitalPinToInterrupt(PIN_PULSE_COUNTER), &onPulseEdge, RISING );
+uint8_t enc0B_bit, enc0B_port;
+uint8_t enc0Z_bit, enc0Z_port;
 
-void processPulseCounter()
+uint8_t enc1B_bit, enc1B_port;
+uint8_t enc1Z_bit, enc1Z_port;
+
+volatile int32_t  ENC_COUNTERS[2] = {0,0};
+
+// Forward:
+//        ------      ------
+// A:     |    |      |    |
+//    ____|    |______|    |_____
+//          ------      ------
+// B:       |    |      |    |
+//   _______|    |______|    |_____
+//
+//
+
+void onEncoder_Raising_A0()
+{
+	// Avoid: digitalRead() "slow" call
+	const bool B = (*portInputRegister(enc0B_port) & enc0B_bit);
+	if (B) 
+	     ENC_COUNTERS[0]--;
+	else ENC_COUNTERS[0]++;
+
+	if (enc0Z_port) {
+		const bool Z = (*portInputRegister(enc0Z_port) & enc0Z_bit);
+		if (Z) {
+			ENC_COUNTERS[0]=0;
+		}
+	}
+}
+
+void onEncoder_Raising_A1()
+{
+	// Avoid: digitalRead() "slow" call
+	const bool B = (*portInputRegister(enc1B_port) & enc1B_bit);
+	if (B)
+	     ENC_COUNTERS[1]--;
+	else ENC_COUNTERS[1]++;
+
+	if (enc1Z_port) {
+		const bool Z = (*portInputRegister(enc1Z_port) & enc1Z_bit);
+		if (Z) {
+			ENC_COUNTERS[1]=0;
+		}
+	}
+}
+
+void init_encoders(
+	int8_t _enc0A_pin, int8_t _enc0B_pin, int8_t _enc0Z_pin, 
+	int8_t _enc1A_pin, int8_t _enc1B_pin, int8_t _enc1Z_pin,
+	uint16_t sampling_period_ms)
+{
+	enc0A_pin=_enc0A_pin;
+	enc1A_pin=_enc1A_pin;
+	PC_sampling_period_ms = sampling_period_ms;
+
+	if (enc0A_pin>0) {
+		// Cache these calls to avoid repeating them in readDigital() inside the interrupt vector ;-)
+		enc0B_bit = digitalPinToBitMask(_enc0B_pin);
+		enc0B_port = digitalPinToPort(_enc0B_pin);
+		if (_enc0Z_pin!=0)
+		{
+			enc0Z_bit = digitalPinToBitMask(_enc0Z_pin);
+			enc0Z_port = digitalPinToPort(_enc0Z_pin);
+		}
+		else
+		{
+			enc0Z_bit = enc0Z_port = 0;
+		}
+
+		attachInterrupt(digitalPinToInterrupt(enc0A_pin), &onEncoder_Raising_A0, RISING );
+	}
+	if (enc1A_pin>0) {
+		// Cache these calls to avoid repeating them in readDigital() inside the interrupt vector ;-)
+		enc1B_bit = digitalPinToBitMask(_enc1B_pin);
+		enc1B_port = digitalPinToPort(_enc1B_pin);
+		if (_enc1Z_pin!=0)
+		{
+			enc1Z_bit = digitalPinToBitMask(_enc1Z_pin);
+			enc1Z_port = digitalPinToPort(_enc1Z_pin);
+		}
+		else
+		{
+			enc0Z_bit = enc0Z_port = 0;
+		}
+
+		attachInterrupt(digitalPinToInterrupt(enc1A_pin), &onEncoder_Raising_A1, RISING );
+	}
+}
+
+
+void processEncoders()
 {
 	const unsigned long tnow = millis();
 	if (tnow-PC_last_millis < PC_sampling_period_ms)
@@ -66,20 +149,17 @@ void processPulseCounter()
 
 	PC_last_millis = tnow;
 
-	uint16_t read_pulses;
+	TFrame_ENCODERS_readings tx;
 
-	// ATOMIC READ:
+	// Atomic read: used to avoid race condition while reading if an interrupt modified the mid-read data.
 	noInterrupts();
-//	read_pulses = PULSE_COUNTER;
-//	PULSE_COUNTER=0;
+	tx.payload.encoders[0] = ENC_COUNTERS[0];
+	tx.payload.encoders[1] = ENC_COUNTERS[1];
 	interrupts();
 
 	// send answer back:
-	TFrame_PULSE_COUNTER_readings tx;
 	tx.payload.timestamp_ms = millis();
 	tx.payload.period_ms = PC_sampling_period_ms;
-	tx.payload.pulse_counter = read_pulses;
-	
 	tx.calc_and_update_checksum();
 
 	Serial.write((uint8_t*)&tx,sizeof(tx));

@@ -54,6 +54,5 @@ void loop()
 {
 	processIncommingPkts();
 	processADCs();
-	processPulseCounter();
-
+	processEncoders();
 }

@@ -71,6 +71,8 @@ enum opcode_t {
 	OP_START_CONT_ADC  = 0x20,
 	OP_STOP_CONT_ADC   = 0x21,
 	OP_SET_PWM         = 0x25,
+	OP_START_ENCODERS  = 0x30,
+	OP_STOP_ENCODERS   = 0x31,
 
 	// -----------------------------
 	// Responses Arduino -> PC
@@ -82,6 +84,8 @@ enum opcode_t {
 	RESP_GET_GPIO         = OP_GET_GPIO + RESP_OFFSET,
 	RESP_START_CONT_ADC   = OP_START_CONT_ADC + RESP_OFFSET,
 	RESP_STOP_CONT_ADC    = OP_STOP_CONT_ADC + RESP_OFFSET,
+	RESP_START_ENCODERS   = OP_START_ENCODERS + RESP_OFFSET,
+	RESP_STOP_ENCODERS    = OP_STOP_ENCODERS + RESP_OFFSET,
 	RESP_ADC_READINGS     = 0x92,
 	RESP_ENCODER_READINGS = 0x93,
 	RESP_SET_PWM          = OP_SET_PWM + RESP_OFFSET,
@@ -235,16 +239,53 @@ struct TFrame_ADC_readings : public TBaseFrame<TFrame_ADC_readings_payload_t>
 	}
 };
 
-struct TFrame_PULSE_COUNTER_readings_payload_t
+
+struct TFrameCMD_ENCODERS_start_payload_t
 {
-	uint32_t timestamp_ms;
-	uint16_t pulse_counter;
-	uint32_t period_ms;
+	/** Fill pin numbers ("Arduino-based numbering") that want to get used as quadrature encoder A,B & Z channels. 
+	  * Leave to "0" if don't need Z channels or one of the A/B encoder channels.
+	  */
+	int8_t enc0A_pin, enc0B_pin, enc0Z_pin;
+	int8_t enc1A_pin, enc1B_pin, enc1Z_pin;
+	uint16_t sampling_period_ms;
+
+	TFrameCMD_ENCODERS_start_payload_t() :
+		enc0A_pin(0), enc0B_pin(0), enc0Z_pin(0),
+		enc1A_pin(0), enc1B_pin(0), enc1Z_pin(0),
+		sampling_period_ms(250)
+	{
+	}
 };
-struct TFrame_PULSE_COUNTER_readings : public TBaseFrame<TFrame_PULSE_COUNTER_readings_payload_t>
+struct TFrameCMD_ENCODERS_start : public TBaseFrame<TFrameCMD_ENCODERS_start_payload_t>
 {
 	// Defaults:
-	TFrame_PULSE_COUNTER_readings() : TBaseFrame(RESP_ENCODER_READINGS)
+	TFrameCMD_ENCODERS_start() : TBaseFrame(OP_START_ENCODERS)
+	{
+	}
+};
+
+struct TFrameCMD_ENCODERS_stop_payload_t
+{
+};
+struct TFrameCMD_ENCODERS_stop : public TBaseFrame<TFrameCMD_ENCODERS_stop_payload_t>
+{
+	// Defaults:
+	TFrameCMD_ENCODERS_stop() : TBaseFrame(OP_STOP_ENCODERS)
+	{
+	}
+};
+
+
+struct TFrame_ENCODERS_readings_payload_t
+{
+	uint32_t timestamp_ms;
+	int32_t  encoders[2];
+	uint32_t period_ms;
+};
+struct TFrame_ENCODERS_readings : public TBaseFrame<TFrame_ENCODERS_readings_payload_t>
+{
+	// Defaults:
+	TFrame_ENCODERS_readings() : TBaseFrame(RESP_ENCODER_READINGS)
 	{
 	}
 };

@@ -173,6 +173,35 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 	}
 	break;
 
+	case OP_START_ENCODERS:
+	{
+		if (datalen!=sizeof(TFrameCMD_ENCODERS_start_payload_t)) return send_simple_opcode_frame(RESP_WRONG_LEN);
+
+		TFrameCMD_ENCODERS_start_payload_t enc_req;
+		memcpy(&enc_req,data, sizeof(enc_req));
+
+		init_encoders(
+			enc_req.enc0A_pin,enc_req.enc0B_pin,enc_req.enc0Z_pin,
+			enc_req.enc1A_pin,enc_req.enc1B_pin,enc_req.enc1Z_pin,
+			enc_req.sampling_period_ms);
+
+		// send answer back:
+		send_simple_opcode_frame(RESP_START_ENCODERS);
+	}
+	break;
+
+	case OP_STOP_ENCODERS:
+	{
+		init_encoders(
+			0,0,0,
+			0,0,0,
+			1000);
+
+		// send answer back:
+		send_simple_opcode_frame(RESP_STOP_ENCODERS);
+	}
+	break;
+
 	default:
 	{
 		// Error:
