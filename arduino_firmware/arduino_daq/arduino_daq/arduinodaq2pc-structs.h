@@ -242,6 +242,8 @@ struct TFrame_ADC_readings : public TBaseFrame<TFrame_ADC_readings_payload_t>
 
 struct TFrameCMD_ENCODERS_start_payload_t
 {
+	static const uint8_t NUM_ENCODERS = 2;
+
 	/** Fill pin numbers ("Arduino-based numbering") that want to get used as quadrature encoder A,B & Z channels. 
 	  * Leave to "0" if don't need Z channels or one of the A/B encoder channels.
 	  */

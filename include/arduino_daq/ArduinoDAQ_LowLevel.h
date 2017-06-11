@@ -65,7 +65,7 @@ public:
 	ros::NodeHandle m_nh_params;
 
 	std::vector<ros::Subscriber> m_sub_GPIO_outputs, m_sub_dac, m_sub_PWM_outputs;
-	ros::Publisher  m_pub_ADC;
+	ros::Publisher  m_pub_ADC, m_pub_ENC;
 #endif
 
 	void setSerialPort(const std::string &sSerialName) {
@@ -84,12 +84,18 @@ public:
 
 	bool CMD_GPIO_output(int pin, bool pinState);
 	bool CMD_DAC(int dac_index, double dac_value_volts);
-	bool CMD_ADC_START(const TFrameCMD_ADC_start_payload_t &adc_config);
+	bool CMD_ADC_START(const TFrameCMD_ADC_start_payload_t &enc_config);
 	bool CMD_ADC_STOP();
 	bool CMD_PWM(int pin_index, uint8_t pwm_value);
+	bool CMD_ENCODERS_START(const TFrameCMD_ENCODERS_start_payload_t &enc_config);
+	bool CMD_ENCODERS_STOP();
 
 	void set_ADC_readings_callback(const std::function<void(TFrame_ADC_readings_payload_t)> &f) {
 		m_adc_callback = f;
+	}
+
+	void set_ENCODERS_readings_callback(const std::function<void(TFrame_ENCODERS_readings_payload_t)> &f) {
+		m_enc_callback = f;
 	}
 
 protected:
@@ -105,12 +111,14 @@ protected:
 	bool WriteBinaryFrame( const uint8_t *full_frame, const size_t full_frame_len); //!< Sends a binary packet, in the expected format  (returns false on COMMS error)
 
 	std::function<void(TFrame_ADC_readings_payload_t)> m_adc_callback;
+	std::function<void(TFrame_ENCODERS_readings_payload_t)> m_enc_callback;
 
 #ifdef HAVE_ROS
 	void daqSetDigitalPinCallback(int index, const std_msgs::Bool::ConstPtr& msg);
 	void daqSetDACCallback(int dac_index, const std_msgs::Float64::ConstPtr& msg);
 	void daqSetPWMCallback(int pwm_pin_index, const std_msgs::UInt8::ConstPtr& msg);
 	void daqOnNewADCCallback(const TFrame_ADC_readings_payload_t &data);
+	void daqOnNewENCCallback(const TFrame_ENCODERS_readings_payload_t &data);
 #endif
 
 };

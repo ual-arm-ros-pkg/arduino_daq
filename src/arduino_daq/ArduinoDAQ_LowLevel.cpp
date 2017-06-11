@@ -37,8 +37,10 @@
 #include <mrpt/system/threads.h> // for sleep()
 #include <arduino_daq/ArduinoDAQ_LowLevel.h>
 #include <arduino_daq/AnalogReading.h>
+#include <arduino_daq/EncodersReading.h>
 #include <functional>
 #include <cstring>
+#include <array>
 
 #ifdef HAVE_ROS
 #include <ros/console.h>
@@ -127,9 +129,11 @@ bool ArduinoDAQ_LowLevel::initialize()
 		m_sub_PWM_outputs[i] = m_nh.subscribe<std_msgs::UInt8>( mrpt::format("arduino_daq_pwm%i",pin), 10, fn);
 	}
 
-  // Publisher: ADC data
+	// Publisher: ADC data
 	m_pub_ADC = m_nh.advertise<arduino_daq::AnalogReading>("arduino_daq_adc", 10);
 
+	// Publisher: ENC data
+	m_pub_ENC = m_nh.advertise<arduino_daq::EncodersReading>("arduino_daq_encoders", 10);
 
 	// Only for ROS:
 	// If provided via params, automatically start ADC conversion:
@@ -169,6 +173,49 @@ bool ArduinoDAQ_LowLevel::initialize()
 		}
 	}
 
+	// If provided via params, automatically start ENCODERS decoding:
+	{
+		std::array<int,TFrameCMD_ENCODERS_start_payload_t::NUM_ENCODERS> ENC_PIN_A,ENC_PIN_B,ENC_PIN_Z;
+		ENC_PIN_A.fill(0);
+		ENC_PIN_B.fill(0);
+		ENC_PIN_Z.fill(0);
+
+		bool any_active = false;
+		for (int i=0;i<TFrameCMD_ENCODERS_start_payload_t::NUM_ENCODERS;i++)
+		{
+			m_nh_params.getParam(mrpt::format("ENC%i_PIN_A",i),ENC_PIN_A[i]);
+			m_nh_params.getParam(mrpt::format("ENC%i_PIN_B",i),ENC_PIN_B[i]);
+			m_nh_params.getParam(mrpt::format("ENC%i_PIN_Z",i),ENC_PIN_Z[i]);
+			if (ENC_PIN_A[i]!=0 && ENC_PIN_B[i]!=0) {
+				any_active = true;
+			}
+		}
+
+		int ENC_MEASURE_PERIOD_MS = 100;
+		m_nh_params.getParam("ENC_MEASURE_PERIOD_MS",ENC_MEASURE_PERIOD_MS);
+
+		TFrameCMD_ENCODERS_start_payload_t cmd;
+//		for (int i=0;i<TFrameCMD_ENCODERS_start_payload_t::NUM_ENCODERS;i++)
+
+		cmd.enc0A_pin = ENC_PIN_A[0];
+		cmd.enc0B_pin = ENC_PIN_B[0];
+		cmd.enc0Z_pin = ENC_PIN_Z[0];
+
+		cmd.enc1A_pin = ENC_PIN_A[1];
+		cmd.enc1B_pin = ENC_PIN_B[1];
+		cmd.enc1Z_pin = ENC_PIN_Z[1];
+
+		if (any_active)
+		{
+			cmd.sampling_period_ms = ENC_MEASURE_PERIOD_MS;
+
+			ROS_INFO("Starting ENCODERS readings with: ");
+			for (int i=0;i<TFrameCMD_ENCODERS_start_payload_t::NUM_ENCODERS;i++) {
+				ROS_INFO(" ENC%i: A_pin=%i  B_pin=%i  Z_pin=%i",i,ENC_PIN_A[i],ENC_PIN_B[i],ENC_PIN_Z[i]);
+			}
+			this->CMD_ENCODERS_START(cmd);
+		}
+	}
 
 #endif
 
@@ -202,8 +249,20 @@ bool ArduinoDAQ_LowLevel::iterate()
 						m_adc_callback(rx.payload);
 					}
 					daqOnNewADCCallback(rx.payload);
-					break;
 				}
+				break;
+
+				case RESP_ENCODER_READINGS:
+				{
+					TFrame_ENCODERS_readings rx;
+					::memcpy((uint8_t*)&rx, &rxFrame[0], sizeof(rx));
+
+					if (m_enc_callback) {
+						m_enc_callback(rx.payload);
+					}
+					daqOnNewENCCallback(rx.payload);
+				}
+				break;
 			};
 		}
 	}
@@ -251,6 +310,23 @@ void ArduinoDAQ_LowLevel::daqOnNewADCCallback(const TFrame_ADC_readings_payload_
 
 	m_pub_ADC.publish(msg);
 }
+
+void ArduinoDAQ_LowLevel::daqOnNewENCCallback(const TFrame_ENCODERS_readings_payload_t &data)
+{
+	arduino_daq::EncodersReading msg;
+
+	msg.timestamp_ms = data.timestamp_ms;
+	msg.period_ms = data.period_ms;
+	const int N =sizeof(data.encoders)/sizeof(data.encoders[0]);
+
+	msg.encoder_values.resize(N);
+	for (int i=0;i<N;i++) {
+		 msg.encoder_values[i] = data.encoders[i];
+	}
+
+	m_pub_ENC.publish(msg);
+}
+
 #endif
 
 bool ArduinoDAQ_LowLevel::AttemptConnection()
@@ -454,6 +530,23 @@ bool ArduinoDAQ_LowLevel::CMD_ADC_STOP()
 
 	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));
 }
+
+bool ArduinoDAQ_LowLevel::CMD_ENCODERS_START(const TFrameCMD_ENCODERS_start_payload_t &enc_config)
+{
+	TFrameCMD_ENCODERS_start cmd;
+	cmd.payload = enc_config;
+	cmd.calc_and_update_checksum();
+
+	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));
+}
+bool ArduinoDAQ_LowLevel::CMD_ENCODERS_STOP()
+{
+	TFrameCMD_ENCODERS_stop cmd;
+	cmd.calc_and_update_checksum();
+
+	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));
+}
+
 
 bool ArduinoDAQ_LowLevel::CMD_PWM(int pin_index, uint8_t pwm_value)
 {

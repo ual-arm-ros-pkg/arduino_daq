@@ -6,8 +6,25 @@ and a ROS node for UAL eCAR's Arduino-based DAQ system, with 4 analog
 outputs (MAX5500), ADC inputs, GPIO, PWM and quadrature encoder
 decoding support.
 
-The used microcontroller is atmega328P, although it could be recompiled
+The precompiled firmware is for atmega328P, but it could be recompiled
 for other larger versions with more I/O pins.
+
+Valid pin numbers
+==================
+The function of each pin can be configured on the fly from the host (PC)
+software. Naturally, each microcontroller hardware limits some special functions:
+
+* **atmega328P**
+  * GPIO inputs/outputs: 2-13
+  * ADC inputs: 0-8
+  * PWM outputs: pins 3, 5, 6, 9, 10, and 11.
+  * Quadrature encoders:
+    * Encoder #0:
+      * Channel A must be pin 2.
+      * Channels B & Z can be any free GPIO pin.
+    * Encoder #1:
+      * Channel A must be pin 3.
+      * Channels B & Z can be any free GPIO pin.
 
 Compiling
 =====================
@@ -53,6 +70,12 @@ channels in pins ADC0 and ADC1 (Requires killing `arduino_daq` to launch it agai
 with these parameters).
 
         rosrun arduino_daq arduino_daq_node _SERIAL_PORT:=/dev/ttyUSB0 _ADC_INTERNAL_REFVOLT:=0 _ADC_MEASURE_PERIOD_MS:=100 _ADC_CHANNEL0:=0 _ADC_CHANNEL1:=1
+
+* Automatically starting reading an ENCODER sampling at 10 Hz, on one channel
+with Channel A=pin 2, Channel B=pin 8, and Channel Z=pin 9 (set channel Z to "0" if not wired).
+(Requires killing `arduino_daq` to launch it again with these parameters).
+
+        rosrun arduino_daq arduino_daq_node _SERIAL_PORT:=/dev/ttyUSB0 _ENC0_PIN_A:=2 _ENC0_PIN_B:=8 _ENC0_PIN_Z:=9
 
 
 ROS graph
