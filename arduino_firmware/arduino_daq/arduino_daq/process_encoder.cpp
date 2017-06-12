@@ -42,18 +42,24 @@
 #include <Wire.h>
 //#include <SPI.h>
 
-
 unsigned long  PC_last_millis = 0;
 uint16_t       PC_sampling_period_ms = 500;
-int8_t enc0A_pin=0, enc1A_pin=0;
 
-uint8_t enc0B_bit, enc0B_port;
-uint8_t enc0Z_bit, enc0Z_port;
+struct EncoderStatus
+{
+	// Config:
+	int8_t encA_pin=0;  // =0 means disabled.
+	int8_t encB_bit, encB_port;
+	int8_t encZ_bit, encZ_port; // encZ_port=0 means no Z
+	
+	// Current encoder tick counter value:
+	volatile int32_t  COUNTER;
+	// Init:
+	EncoderStatus() : encA_pin(0), encB_bit(0), encB_port(0), encZ_bit(0),encZ_port(0),COUNTER(0)
+	{ }
+};
 
-uint8_t enc1B_bit, enc1B_port;
-uint8_t enc1Z_bit, enc1Z_port;
-
-volatile int32_t  ENC_COUNTERS[2] = {0,0};
+EncoderStatus ENC_STATUS[TFrameCMD_ENCODERS_start_payload_t::NUM_ENCODERS];
 
 // Forward:
 //        ------      ------
@@ -64,82 +70,63 @@ volatile int32_t  ENC_COUNTERS[2] = {0,0};
 //   _______|    |______|    |_____
 //
 //
-
-void onEncoder_Raising_A0()
+template <uint8_t index>  // Generic template to generate N functions for different index of encoder=0,1,...
+void onEncoder_Raising_A()
 {
 	// Avoid: digitalRead() "slow" call
-	const bool B = (*portInputRegister(enc0B_port) & enc0B_bit);
+	const bool B = (*portInputRegister(ENC_STATUS[index].encB_port) & ENC_STATUS[index].encB_bit);
 	if (B) 
-	     ENC_COUNTERS[0]--;
-	else ENC_COUNTERS[0]++;
+	     ENC_STATUS[index].COUNTER--;
+	else ENC_STATUS[index].COUNTER++;
 
-	if (enc0Z_port) {
-		const bool Z = (*portInputRegister(enc0Z_port) & enc0Z_bit);
+	if (ENC_STATUS[index].encZ_port) {
+		const bool Z = (*portInputRegister(ENC_STATUS[index].encZ_port) & ENC_STATUS[index].encZ_bit);
 		if (Z) {
-			ENC_COUNTERS[0]=0;
+			ENC_STATUS[index].COUNTER=0;
 		}
 	}
 }
 
-void onEncoder_Raising_A1()
+// List of function pointers, required by Arduino attachInterrupt() and also 
+// to be able to dynamically get a pointer by index, which is not directly allowed
+// with template arguments.
+typedef void (*func_ptr)(void);
+func_ptr my_encoder_ISRs[TFrameCMD_ENCODERS_start_payload_t::NUM_ENCODERS] = 
 {
-	// Avoid: digitalRead() "slow" call
-	const bool B = (*portInputRegister(enc1B_port) & enc1B_bit);
-	if (B)
-	     ENC_COUNTERS[1]--;
-	else ENC_COUNTERS[1]++;
+	&onEncoder_Raising_A<0>,
+	&onEncoder_Raising_A<1>
+	//... Add more if needed in the future
+};
 
-	if (enc1Z_port) {
-		const bool Z = (*portInputRegister(enc1Z_port) & enc1Z_bit);
-		if (Z) {
-			ENC_COUNTERS[1]=0;
-		}
-	}
-}
 
-void init_encoders(
-	int8_t _enc0A_pin, int8_t _enc0B_pin, int8_t _enc0Z_pin, 
-	int8_t _enc1A_pin, int8_t _enc1B_pin, int8_t _enc1Z_pin,
-	uint16_t sampling_period_ms)
+void init_encoders(const TFrameCMD_ENCODERS_start_payload_t &cmd)
 {
-	enc0A_pin=_enc0A_pin;
-	enc1A_pin=_enc1A_pin;
-	PC_sampling_period_ms = sampling_period_ms;
+	PC_sampling_period_ms = cmd.sampling_period_ms;
 
-	if (enc0A_pin>0) {
-		// Cache these calls to avoid repeating them in readDigital() inside the interrupt vector ;-)
-		enc0B_bit = digitalPinToBitMask(_enc0B_pin);
-		enc0B_port = digitalPinToPort(_enc0B_pin);
-		if (_enc0Z_pin!=0)
-		{
-			enc0Z_bit = digitalPinToBitMask(_enc0Z_pin);
-			enc0Z_port = digitalPinToPort(_enc0Z_pin);
+	// For each software-based encoder:
+	for (uint8_t i=0;i<TFrameCMD_ENCODERS_start_payload_t::NUM_ENCODERS;i++)
+	{
+		ENC_STATUS[i].encA_pin = cmd.encA_pin[i];
+		
+		// Is it enabled by the user?
+		if (cmd.encA_pin[i]>0) {
+			// Cache these calls to avoid repeating them in readDigital() inside the interrupt vector ;-)
+			ENC_STATUS[i].encB_bit = digitalPinToBitMask( cmd.encB_pin[i] );
+			ENC_STATUS[i].encB_port = digitalPinToPort(cmd.encB_pin[i]);
+			if (cmd.encZ_pin>0)
+			{
+				ENC_STATUS[i].encZ_bit = digitalPinToBitMask(cmd.encZ_pin[i]);
+				ENC_STATUS[i].encZ_port = digitalPinToPort(cmd.encZ_pin[i]);
+			}
+			else
+			{
+				ENC_STATUS[i].encZ_bit = ENC_STATUS[i].encZ_port = 0;
+			}
+			
+			attachInterrupt(digitalPinToInterrupt(cmd.encA_pin[i]), my_encoder_ISRs[i], RISING );
 		}
-		else
-		{
-			enc0Z_bit = enc0Z_port = 0;
-		}
-
-		attachInterrupt(digitalPinToInterrupt(enc0A_pin), &onEncoder_Raising_A0, RISING );
-	}
-	if (enc1A_pin>0) {
-		// Cache these calls to avoid repeating them in readDigital() inside the interrupt vector ;-)
-		enc1B_bit = digitalPinToBitMask(_enc1B_pin);
-		enc1B_port = digitalPinToPort(_enc1B_pin);
-		if (_enc1Z_pin!=0)
-		{
-			enc1Z_bit = digitalPinToBitMask(_enc1Z_pin);
-			enc1Z_port = digitalPinToPort(_enc1Z_pin);
-		}
-		else
-		{
-			enc0Z_bit = enc0Z_port = 0;
-		}
-
-		attachInterrupt(digitalPinToInterrupt(enc1A_pin), &onEncoder_Raising_A1, RISING );
 	}
 }
-
 
 void processEncoders()
 {
@@ -153,8 +140,10 @@ void processEncoders()
 
 	// Atomic read: used to avoid race condition while reading if an interrupt modified the mid-read data.
 	noInterrupts();
-	tx.payload.encoders[0] = ENC_COUNTERS[0];
-	tx.payload.encoders[1] = ENC_COUNTERS[1];
+	for (uint8_t i=0;i<TFrameCMD_ENCODERS_start_payload_t::NUM_ENCODERS;i++)
+	{
+		tx.payload.encoders[i] = ENC_STATUS[i].COUNTER;
+	}
 	interrupts();
 
 	// send answer back:

@@ -247,15 +247,15 @@ struct TFrameCMD_ENCODERS_start_payload_t
 	/** Fill pin numbers ("Arduino-based numbering") that want to get used as quadrature encoder A,B & Z channels. 
 	  * Leave to "0" if don't need Z channels or one of the A/B encoder channels.
 	  */
-	int8_t enc0A_pin, enc0B_pin, enc0Z_pin;
-	int8_t enc1A_pin, enc1B_pin, enc1Z_pin;
+	int8_t encA_pin[NUM_ENCODERS], encB_pin[NUM_ENCODERS], encZ_pin[NUM_ENCODERS];
 	uint16_t sampling_period_ms;
 
 	TFrameCMD_ENCODERS_start_payload_t() :
-		enc0A_pin(0), enc0B_pin(0), enc0Z_pin(0),
-		enc1A_pin(0), enc1B_pin(0), enc1Z_pin(0),
 		sampling_period_ms(250)
 	{
+		for (uint8_t i=0;i<NUM_ENCODERS;i++) {
+			encA_pin[i]=encB_pin[i]=encZ_pin[i]=0;
+		}
 	}
 };
 struct TFrameCMD_ENCODERS_start : public TBaseFrame<TFrameCMD_ENCODERS_start_payload_t>

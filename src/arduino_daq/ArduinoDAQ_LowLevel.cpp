@@ -195,16 +195,12 @@ bool ArduinoDAQ_LowLevel::initialize()
 		m_nh_params.getParam("ENC_MEASURE_PERIOD_MS",ENC_MEASURE_PERIOD_MS);
 
 		TFrameCMD_ENCODERS_start_payload_t cmd;
-//		for (int i=0;i<TFrameCMD_ENCODERS_start_payload_t::NUM_ENCODERS;i++)
-
-		cmd.enc0A_pin = ENC_PIN_A[0];
-		cmd.enc0B_pin = ENC_PIN_B[0];
-		cmd.enc0Z_pin = ENC_PIN_Z[0];
-
-		cmd.enc1A_pin = ENC_PIN_A[1];
-		cmd.enc1B_pin = ENC_PIN_B[1];
-		cmd.enc1Z_pin = ENC_PIN_Z[1];
-
+		for (int i=0;i<TFrameCMD_ENCODERS_start_payload_t::NUM_ENCODERS;i++)
+		{
+			cmd.encA_pin[i] = ENC_PIN_A[i];
+			cmd.encB_pin[i] = ENC_PIN_B[i];
+			cmd.encZ_pin[i] = ENC_PIN_Z[i];
+		}
 		if (any_active)
 		{
 			cmd.sampling_period_ms = ENC_MEASURE_PERIOD_MS;

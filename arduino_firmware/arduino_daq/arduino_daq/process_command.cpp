@@ -38,7 +38,6 @@
 /*End of auto generated code by Atmel studio */
 
 #include "arduinodaq_declarations.h"
-#include "arduinodaq2pc-structs.h"
 
 #include "mod_dac_max5500.h"
 
@@ -180,10 +179,7 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 		TFrameCMD_ENCODERS_start_payload_t enc_req;
 		memcpy(&enc_req,data, sizeof(enc_req));
 
-		init_encoders(
-			enc_req.enc0A_pin,enc_req.enc0B_pin,enc_req.enc0Z_pin,
-			enc_req.enc1A_pin,enc_req.enc1B_pin,enc_req.enc1Z_pin,
-			enc_req.sampling_period_ms);
+		init_encoders(enc_req);
 
 		// send answer back:
 		send_simple_opcode_frame(RESP_START_ENCODERS);
@@ -192,10 +188,8 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 
 	case OP_STOP_ENCODERS:
 	{
-		init_encoders(
-			0,0,0,
-			0,0,0,
-			1000);
+		TFrameCMD_ENCODERS_start_payload_t cmd_empty;
+		init_encoders(cmd_empty);
 
 		// send answer back:
 		send_simple_opcode_frame(RESP_STOP_ENCODERS);

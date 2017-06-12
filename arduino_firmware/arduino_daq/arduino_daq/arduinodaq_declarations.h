@@ -34,6 +34,8 @@
 
 #pragma once
 
+#include "arduinodaq2pc-structs.h"
+
 #include <stdint.h>  // uint8_t, etc.
 
 // Function prototypes:
@@ -43,7 +45,7 @@ void processADCs();
 void processEncoders();
 void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*data);
 void flash_led(int ntimes, int nms);
-void init_encoders(int8_t enc0A_pin, int8_t enc0B_pin, int8_t enc0Z_pin, int8_t enc1A_pin, int8_t enc1B_pin, int8_t enc1Z_pin,uint16_t sampling_period_ms);
+void init_encoders(const TFrameCMD_ENCODERS_start_payload_t &cmd);
 
 // Global vars:
 extern uint8_t        num_active_ADC_channels;
