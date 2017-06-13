@@ -84,7 +84,10 @@ public:
 
 	bool CMD_GPIO_output(int pin, bool pinState);
 	bool CMD_DAC(int dac_index, double dac_value_volts);
-	bool CMD_PWMSteering(int 3, bool pinState);
+	bool CMD_PWMSteering(int 3, bool pinState); /* Error después del 3 ¿Por qué?: Expected ',' or '...' before numeric constant*/
+												/* Note: Candidate: bool ArduinoDAQ_LowLevel:: CMD_PWMSteering(int)*/
+												/* Note: candidate expects 1 argument, 2 provided*/
+												/* Error: Candidate is: bool ArduinoDAQ_LowLevel:: CMD_PWMSteering(int)*/
 	bool CMD_ADC_START(const TFrameCMD_ADC_start_payload_t &enc_config);
 	bool CMD_ADC_STOP();
 	bool CMD_PWM(int pin_index, uint8_t pwm_value);

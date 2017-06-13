@@ -295,7 +295,7 @@ void ArduinoDAQ_LowLevel::daqSetPWMSteeringCallback(int pwm_index, const std_msg
 {
 	ROS_INFO("PWM Steer controller: PIN[%i]=%f V", pwm_index, msg->data);
 
-	if (!CMD_PWMSteering(pwm_index,msg->data)) {
+	if (!CMD_PWMSteering(pwm_index,msg->data)) { /*Error en "data": no matching function for call to 'ArduinoDAQ_LowLevel::CMD_PWMSteering(int&, const_data_type&)*/
 		ROS_ERROR("*** Error sending CMD_PWMSteering!!! ***");
 	}
 }
@@ -520,7 +520,7 @@ bool ArduinoDAQ_LowLevel::CMD_DAC(int dac_index,double dac_value_volts)
     return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd),sizeof(cmd));
 }
 
-bool ArduinoDAQ_LowLevel::CMD_PWMSteering(int pwm_index,double pwm_degree)
+bool ArduinoDAQ_LowLevel::CMD_PWMSteering(int pwm_index,double pwm_degree) /*Error prototype for 'bool ArduinoDAQ_LowLevel:: CMD_PWMSteering(int, double)' does not match any in class 'ArduinoDAQ_LowLevel'*/
 {
 	uint16_t pwm_counts = 4096 * pwm_degree / 50;
 	mrpt::utils::saturate(pwm_counts, uint16_t(0), uint16_t(4095));
