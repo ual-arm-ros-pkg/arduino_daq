@@ -115,13 +115,7 @@ bool ArduinoDAQ_LowLevel::initialize()
 		m_sub_dac[i] = m_nh.subscribe<std_msgs::Float64>( mrpt::format("arduino_daq_dac%i",i), 10, fn);
 	}
 
-	// Subscribers: PWM Steer controller
-	m_sub_PWM_steer_controller.resize(1);
-	for (int i=0;i<1;i++) {
-		auto fn = boost::bind(&ArduinoDAQ_LowLevel::daqSetPWMSteeringCallback, this, 3, _1);
-		m_sub_PWM_steer_controller[i] = m_nh.subscribe<std_msgs::Float64>( mrpt::format("steer_controller_pwm"), 10, fn);
-	}
-	
+
 	// Subscribers: PWM outputs
 	// (From: https://www.arduino.cc/en/Reference/analogWrite)
 	// On most Arduino boards (those with the ATmega168 or ATmega328), this function works on pins 3, 5, 6, 9, 10, and 11.
@@ -289,15 +283,7 @@ void ArduinoDAQ_LowLevel::daqSetDACCallback(int dac_index, const std_msgs::Float
     if (!CMD_DAC(dac_index,msg->data)) {
         ROS_ERROR("*** Error sending CMD_DAC!!! ***");
     }
-}
 
-void ArduinoDAQ_LowLevel::daqSetPWMSteeringCallback(int pwm_index, const std_msgs::Float64::ConstPtr& msg)
-{
-	ROS_INFO("PWM Steer controller: PIN[%i]=%f V", pwm_index, msg->data);
-
-	if (!CMD_PWMSteering(pwm_index,msg->data)) { /*Error en "data": no matching function for call to 'ArduinoDAQ_LowLevel::CMD_PWMSteering(int&, const_data_type&)*/
-		ROS_ERROR("*** Error sending CMD_PWMSteering!!! ***");
-	}
 }
 
 void ArduinoDAQ_LowLevel::daqSetPWMCallback(int pwm_pin_index, const std_msgs::UInt8::ConstPtr& msg)
@@ -518,21 +504,6 @@ bool ArduinoDAQ_LowLevel::CMD_DAC(int dac_index,double dac_value_volts)
     cmd.calc_and_update_checksum();
 
     return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd),sizeof(cmd));
-}
-
-bool ArduinoDAQ_LowLevel::CMD_PWMSteering(int pwm_index,double pwm_degree) /*Error prototype for 'bool ArduinoDAQ_LowLevel:: CMD_PWMSteering(int, double)' does not match any in class 'ArduinoDAQ_LowLevel'*/
-{
-	uint16_t pwm_counts = 4096 * pwm_degree / 50;
-	mrpt::utils::saturate(pwm_counts, uint16_t(0), uint16_t(4095));
-
-	TFrameCMD_SetPWMSteering cmd;
-	cmd.payload.pwm_index = pwm_index;
-	cmd.payload.pwm_value_HI = pwm_counts >> 60;
-	cmd.payload.pwm_value_LO = pwm_counts & 0x00ff;
-
-	cmd.calc_and_update_checksum();
-
-	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd),sizeof(cmd));
 }
 
 bool ArduinoDAQ_LowLevel::IsConnected() const

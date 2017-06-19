@@ -64,7 +64,7 @@ public:
 	ros::NodeHandle m_nh;
 	ros::NodeHandle m_nh_params;
 
-	std::vector<ros::Subscriber> m_sub_GPIO_outputs, m_sub_dac, m_sub_PWM_outputs, m_sub_PWM_steer_controller;
+	std::vector<ros::Subscriber> m_sub_GPIO_outputs, m_sub_dac, m_sub_PWM_outputs;
 	ros::Publisher  m_pub_ADC, m_pub_ENC;
 #endif
 
@@ -84,10 +84,6 @@ public:
 
 	bool CMD_GPIO_output(int pin, bool pinState);
 	bool CMD_DAC(int dac_index, double dac_value_volts);
-	bool CMD_PWMSteering(int 3, bool pinState); /* Error después del 3 ¿Por qué?: Expected ',' or '...' before numeric constant*/
-												/* Note: Candidate: bool ArduinoDAQ_LowLevel:: CMD_PWMSteering(int)*/
-												/* Note: candidate expects 1 argument, 2 provided*/
-												/* Error: Candidate is: bool ArduinoDAQ_LowLevel:: CMD_PWMSteering(int)*/
 	bool CMD_ADC_START(const TFrameCMD_ADC_start_payload_t &enc_config);
 	bool CMD_ADC_STOP();
 	bool CMD_PWM(int pin_index, uint8_t pwm_value);
@@ -120,7 +116,6 @@ protected:
 #ifdef HAVE_ROS
 	void daqSetDigitalPinCallback(int index, const std_msgs::Bool::ConstPtr& msg);
 	void daqSetDACCallback(int dac_index, const std_msgs::Float64::ConstPtr& msg);
-	void daqSetPWMSteeringCallback(int pwm_index, const std_msgs::Float64::ConstPtr& msg);
 	void daqSetPWMCallback(int pwm_pin_index, const std_msgs::UInt8::ConstPtr& msg);
 	void daqOnNewADCCallback(const TFrame_ADC_readings_payload_t &data);
 	void daqOnNewENCCallback(const TFrame_ENCODERS_readings_payload_t &data);
