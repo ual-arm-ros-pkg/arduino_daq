@@ -67,7 +67,7 @@ ArduinoDAQ_LowLevel::ArduinoDAQ_LowLevel() :
 	m_nh_params("~"),
 #endif
 #ifndef _WIN32
-	m_serial_port_name("/dev/serial/by-id/usb-FTDI_TTL232R-3V3_FT9J3NTD-if00-port0"),
+	m_serial_port_name("/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0"),
 #else
 	m_serial_port_name("COM3"),
 #endif
