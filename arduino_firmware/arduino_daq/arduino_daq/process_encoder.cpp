@@ -38,6 +38,7 @@
 /*End of auto generated code by Atmel studio */
 
 #include "arduinodaq2pc-structs.h"
+#include "config.h"
 
 #include <Wire.h>
 //#include <SPI.h>
@@ -73,6 +74,10 @@ EncoderStatus ENC_STATUS[TFrameCMD_ENCODERS_start_payload_t::NUM_ENCODERS];
 template <uint8_t index>  // Generic template to generate N functions for different index of encoder=0,1,...
 void onEncoder_Raising_A()
 {
+#ifdef USE_ENCODER_DEBUG_LED
+	digitalWrite(PIN_ENCODER_DEBUG_LED, !digitalRead(PIN_ENCODER_DEBUG_LED));
+#endif
+
 	// Avoid: digitalRead() "slow" call
 	const bool B = (*portInputRegister(ENC_STATUS[index].encB_port) & ENC_STATUS[index].encB_bit);
 	if (B) 
