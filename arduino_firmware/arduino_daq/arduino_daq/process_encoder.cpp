@@ -49,14 +49,15 @@ uint16_t       PC_sampling_period_ms = 500;
 struct EncoderStatus
 {
 	// Config:
-	int8_t encA_pin=0;  // =0 means disabled.
-	int8_t encB_bit, encB_port;
-	int8_t encZ_bit, encZ_port; // encZ_port=0 means no Z
+	volatile int8_t encA_pin=0;  // =0 means disabled.
+	volatile int8_t encB_valid=0,encB_bit=0, encB_port=0;
+	volatile int8_t encZ_valid=0,encZ_bit=0, encZ_port=0; // encZ_port=0 means no Z
+	volatile bool led = false;
 	
 	// Current encoder tick counter value:
-	volatile int32_t  COUNTER;
+	volatile int32_t  COUNTER = 0;
 	// Init:
-	EncoderStatus() : encA_pin(0), encB_bit(0), encB_port(0), encZ_bit(0),encZ_port(0),COUNTER(0)
+	EncoderStatus()
 	{ }
 };
 
@@ -72,24 +73,34 @@ EncoderStatus ENC_STATUS[TFrameCMD_ENCODERS_start_payload_t::NUM_ENCODERS];
 //
 //
 template <uint8_t index>  // Generic template to generate N functions for different index of encoder=0,1,...
-void onEncoder_Raising_A()
+static void onEncoder_Raising_A()
 {
 #ifdef USE_ENCODER_DEBUG_LED
-	digitalWrite(PIN_ENCODER_DEBUG_LED, !digitalRead(PIN_ENCODER_DEBUG_LED));
+	ENC_STATUS[index].led = !ENC_STATUS[index].led;
 #endif
 
 	// Avoid: digitalRead() "slow" call
-	const bool B = (*portInputRegister(ENC_STATUS[index].encB_port) & ENC_STATUS[index].encB_bit);
-	if (B) 
-	     ENC_STATUS[index].COUNTER--;
-	else ENC_STATUS[index].COUNTER++;
+	if (ENC_STATUS[index].encB_valid)
+	{
+		const bool B = (*portInputRegister(ENC_STATUS[index].encB_port) & ENC_STATUS[index].encB_bit);
+		if (B)
+		ENC_STATUS[index].COUNTER--;
+		else ENC_STATUS[index].COUNTER++;	
+	}
+	else 
+	{
+		ENC_STATUS[index].COUNTER++;
+	}
 
-	if (ENC_STATUS[index].encZ_port) {
+#if 0
+	if (ENC_STATUS[index].encZ_valid) 
+	{
 		const bool Z = (*portInputRegister(ENC_STATUS[index].encZ_port) & ENC_STATUS[index].encZ_bit);
 		if (Z) {
 			ENC_STATUS[index].COUNTER=0;
 		}
 	}
+#endif
 }
 
 // List of function pointers, required by Arduino attachInterrupt() and also 
@@ -103,7 +114,6 @@ func_ptr my_encoder_ISRs[TFrameCMD_ENCODERS_start_payload_t::NUM_ENCODERS] =
 	//... Add more if needed in the future
 };
 
-
 void init_encoders(const TFrameCMD_ENCODERS_start_payload_t &cmd)
 {
 	PC_sampling_period_ms = cmd.sampling_period_ms;
@@ -111,20 +121,32 @@ void init_encoders(const TFrameCMD_ENCODERS_start_payload_t &cmd)
 	// For each software-based encoder:
 	for (uint8_t i=0;i<TFrameCMD_ENCODERS_start_payload_t::NUM_ENCODERS;i++)
 	{
+		ENC_STATUS[i] = EncoderStatus();
+
 		ENC_STATUS[i].encA_pin = cmd.encA_pin[i];
 		
 		// Is it enabled by the user?
-		if (cmd.encA_pin[i]>0) {
-			// Cache these calls to avoid repeating them in readDigital() inside the interrupt vector ;-)
-			ENC_STATUS[i].encB_bit = digitalPinToBitMask( cmd.encB_pin[i] );
-			ENC_STATUS[i].encB_port = digitalPinToPort(cmd.encB_pin[i]);
+		if (cmd.encA_pin[i]>0) 
+		{
+			if (cmd.encB_pin[i]>0)
+			{
+				// Cache these calls to avoid repeating them in readDigital() inside the interrupt vector ;-)
+				ENC_STATUS[i].encB_bit = digitalPinToBitMask( cmd.encB_pin[i] );
+				ENC_STATUS[i].encB_port = digitalPinToPort(cmd.encB_pin[i]);
+				ENC_STATUS[i].encB_valid = true;
+			}
+			else 				
+				ENC_STATUS[i].encB_valid = false;
+
 			if (cmd.encZ_pin>0)
 			{
 				ENC_STATUS[i].encZ_bit = digitalPinToBitMask(cmd.encZ_pin[i]);
 				ENC_STATUS[i].encZ_port = digitalPinToPort(cmd.encZ_pin[i]);
+				ENC_STATUS[i].encZ_valid = true;
 			}
 			else
 			{
+				ENC_STATUS[i].encZ_valid = false;
 				ENC_STATUS[i].encZ_bit = ENC_STATUS[i].encZ_port = 0;
 			}
 			
@@ -135,6 +157,11 @@ void init_encoders(const TFrameCMD_ENCODERS_start_payload_t &cmd)
 
 void processEncoders()
 {
+#ifdef USE_ENCODER_DEBUG_LED
+	pinMode(PIN_ENCODER_DEBUG_LED, OUTPUT);
+	digitalWrite(PIN_ENCODER_DEBUG_LED,ENC_STATUS[0].led);
+#endif
+
 	const unsigned long tnow = millis();
 	if (tnow-PC_last_millis < PC_sampling_period_ms)
 	return;

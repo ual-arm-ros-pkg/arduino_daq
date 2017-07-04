@@ -40,6 +40,6 @@ const int PIN_DAC_MAX5500_CS  = 9;
 const int PIN_LED             = 13;
 
 // Comment out to avoid flashing a LED everytime a pulse arrives at an encoder
-#define USE_ENCODER_DEBUG_LED
+//#define USE_ENCODER_DEBUG_LED
 const int PIN_ENCODER_DEBUG_LED = 6;
 
