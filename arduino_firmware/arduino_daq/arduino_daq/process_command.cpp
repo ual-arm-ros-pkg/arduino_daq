@@ -53,6 +53,38 @@
 // Fixed pins configuration for this hardware:
 #include "config.h"
 
+/*
+void setPwmFrequency(int pin, int divisor) {
+	byte mode;
+	if(pin == 5 || pin == 6 || pin == 9 || pin == 10) {
+		switch(divisor) {
+			case 1: mode = 0x01; break;
+			case 8: mode = 0x02; break;
+			case 64: mode = 0x03; break;
+			case 256: mode = 0x04; break;
+			case 1024: mode = 0x05; break;
+			default: return;
+		}
+		if(pin == 5 || pin == 6) {
+			TCCR0B = TCCR0B & 0b11111000 | mode;
+			} else {
+			TCCR1B = TCCR1B & 0b11111000 | mode;
+		}
+		} else if(pin == 3 || pin == 11) {
+		switch(divisor) {
+			case 1: mode = 0x01; break;
+			case 8: mode = 0x02; break;
+			case 32: mode = 0x03; break;
+			case 64: mode = 0x04; break;
+			case 128: mode = 0x05; break;
+			case 256: mode = 0x06; break;
+			case 1024: mode = 0x07; break;
+			default: return;
+		}
+		TCCR2B = TCCR2B & 0b11111000 | mode;
+	}
+}
+*/
 
 void flash_led(int ntimes, int nms)
 {
@@ -164,6 +196,7 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 		TFrameCMD_SET_PWM_payload_t pwm_req;
 		memcpy(&pwm_req,data, sizeof(pwm_req));
 
+		/*setPwmFrequency(pwm_req.pin_index, 1); // Cambia la frecuencia del PWM a 31.25kHz*/
 		pinMode(pwm_req.pin_index, OUTPUT);
 		analogWrite(pwm_req.pin_index, pwm_req.analog_value);
 
