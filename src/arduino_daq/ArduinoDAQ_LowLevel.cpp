@@ -186,7 +186,7 @@ bool ArduinoDAQ_LowLevel::initialize()
 			m_nh_params.getParam(mrpt::format("ENC%i_PIN_A",i),ENC_PIN_A[i]);
 			m_nh_params.getParam(mrpt::format("ENC%i_PIN_B",i),ENC_PIN_B[i]);
 			m_nh_params.getParam(mrpt::format("ENC%i_PIN_Z",i),ENC_PIN_Z[i]);
-			if (ENC_PIN_A[i]!=0 && ENC_PIN_B[i]!=0) {
+			if (ENC_PIN_A[i]!=0) {
 				any_active = true;
 			}
 		}
