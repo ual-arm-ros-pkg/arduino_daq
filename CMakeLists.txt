@@ -1,5 +1,6 @@
 
-cmake_minimum_required(VERSION 2.8.3)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.1)
+set (CMAKE_CXX_STANDARD 14)  # Require C++14
 project(arduino_daq)
 
 option(BUILD_ROS "Build ROS node" ON)
@@ -21,8 +22,6 @@ add_definitions(-DHAVE_ROS) # used to tell between building standalone lib vs. R
 
 # System dependencies are found with CMake's conventions
 find_package(MRPT REQUIRED hwdrivers)
-
-add_definitions(-std=c++11)
 
 ################################################
 ## Declare ROS messages, services and actions ##

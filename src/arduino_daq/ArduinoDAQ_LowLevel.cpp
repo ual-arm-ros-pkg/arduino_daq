@@ -34,13 +34,14 @@
 
 
 #include <arduino_daq/ArduinoDAQ_LowLevel.h>
-#include <mrpt/system/threads.h> // for sleep()
 #include <arduino_daq/ArduinoDAQ_LowLevel.h>
 #include <arduino_daq/AnalogReading.h>
 #include <arduino_daq/EncodersReading.h>
 #include <functional>
 #include <cstring>
 #include <array>
+#include <thread>
+#include <chrono>
 
 #ifdef HAVE_ROS
 #include <ros/console.h>
@@ -424,7 +425,10 @@ bool ArduinoDAQ_LowLevel::ReceiveFrameFromController(std::vector<uint8_t> &rxFra
 		}
 
 		if (nRead<nBytesToRead)
-			mrpt::system::sleep(1);
+		{
+			using namespace std::chrono_literals;
+			std::this_thread::sleep_for(1ms);
+		}
 
 		// Lectura OK:
 		// Check start flag:
