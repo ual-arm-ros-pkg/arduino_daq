@@ -40,6 +40,7 @@
 #include "arduinodaq_declarations.h"
 
 #include "mod_dac_max5500.h"
+#include "Encoder_EMS22A.h"
 
 // Originally designed for atmega328P.
 // --------------------------------------
@@ -201,21 +202,25 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 
 		TFrameCMD_EMS22A_start_payload_t EMS22A_req;
 		memcpy(&EMS22A_req,data, sizeof(EMS22A_req));
-		boolean EMS22A_active = true;
-		init_EMS22A();
-
-		// send answer back:
-		send_simple_opcode_frame(RESP_START_EMS22A);
+		if (init_EMS22A(
+			EMS22A_req.ENCODER_ABS_CS,EMS22A_req.ENCODER_ABS_CLK, 
+			EMS22A_req.ENCODER_ABS_DO, EMS22A_req.sampling_period_ms
+			))
+		{
+			// send answer back:
+			send_simple_opcode_frame(RESP_START_EMS22A);
+		}
+		else
+		{
+			// params error:
+			return send_simple_opcode_frame(RESP_INVALID_PARAMS);
+		}
 	}
 	break;
 
 	case OP_STOP_EMS22A:
 	{
-		TFrameCMD_EMS22A_start_payload_t cmd_empty;
-
-		boolean EMS22A_active = false;
-		init_EMS22A();
-
+		EMS22A_active = false;
 		// send answer back:
 		send_simple_opcode_frame(RESP_STOP_EMS22A);
 	}

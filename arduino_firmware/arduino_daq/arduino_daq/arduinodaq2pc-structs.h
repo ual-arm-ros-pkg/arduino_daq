@@ -90,13 +90,14 @@ enum opcode_t {
 	RESP_STOP_ENCODERS    = OP_STOP_ENCODERS + RESP_OFFSET,
 	RESP_START_EMS22A     = OP_START_EMS22A + RESP_OFFSET, //
 	RESP_STOP_EMS22A      = OP_STOP_EMS22A + RESP_OFFSET,  //
-//	RESP_EMS22A_READINGS  = 0x94,
 	RESP_ADC_READINGS     = 0x92,
 	RESP_ENCODER_READINGS = 0x93,
+	RESP_EMS22A_READINGS  = 0x94,
 	RESP_SET_PWM          = OP_SET_PWM + RESP_OFFSET,
 
 
 	// error codes:
+	RESP_INVALID_PARAMS    = 0xfc,
 	RESP_WRONG_LEN         = 0xfd,
 	RESP_UNKNOWN_OPCODE    = 0xfe
 };
@@ -293,6 +294,20 @@ struct TFrame_ENCODERS_readings : public TBaseFrame<TFrame_ENCODERS_readings_pay
 {
 	// Defaults:
 	TFrame_ENCODERS_readings() : TBaseFrame(RESP_ENCODER_READINGS)
+	{
+	}
+};
+
+struct TFrame_ENCODER_ABS_reading_payload_t
+{
+	uint32_t timestamp_ms;
+	uint16_t enc_pos; //!< Absolute value read from the encoder (10 bits resolution)
+	uint8_t  enc_status; //!< See EMS22A datasheet for the bit map
+};
+struct TFrame_ENCODER_ABS_reading : public TBaseFrame<TFrame_ENCODER_ABS_reading_payload_t>
+{
+	// Defaults:
+	TFrame_ENCODER_ABS_reading() : TBaseFrame(RESP_EMS22A_READINGS)
 	{
 	}
 };
