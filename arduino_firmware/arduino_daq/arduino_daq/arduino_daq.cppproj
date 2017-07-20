@@ -219,6 +219,9 @@
     <Compile Include="config.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="Encoder_EMS22A.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="main.cpp">
       <SubType>compile</SubType>
     </Compile>
@@ -232,6 +235,9 @@
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="process_command.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="process_EMS22A.cpp">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="process_encoder.cpp">

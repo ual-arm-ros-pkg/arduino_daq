@@ -73,6 +73,8 @@ enum opcode_t {
 	OP_SET_PWM         = 0x25,
 	OP_START_ENCODERS  = 0x30,
 	OP_STOP_ENCODERS   = 0x31,
+	OP_START_EMS22A	   = 0x40, //
+	OP_STOP_EMS22A     = 0x41, //
 
 	// -----------------------------
 	// Responses Arduino -> PC
@@ -86,6 +88,9 @@ enum opcode_t {
 	RESP_STOP_CONT_ADC    = OP_STOP_CONT_ADC + RESP_OFFSET,
 	RESP_START_ENCODERS   = OP_START_ENCODERS + RESP_OFFSET,
 	RESP_STOP_ENCODERS    = OP_STOP_ENCODERS + RESP_OFFSET,
+	RESP_START_EMS22A     = OP_START_EMS22A + RESP_OFFSET, //
+	RESP_STOP_EMS22A      = OP_STOP_EMS22A + RESP_OFFSET,  //
+//	RESP_EMS22A_READINGS  = 0x94,
 	RESP_ADC_READINGS     = 0x92,
 	RESP_ENCODER_READINGS = 0x93,
 	RESP_SET_PWM          = OP_SET_PWM + RESP_OFFSET,
@@ -288,6 +293,37 @@ struct TFrame_ENCODERS_readings : public TBaseFrame<TFrame_ENCODERS_readings_pay
 {
 	// Defaults:
 	TFrame_ENCODERS_readings() : TBaseFrame(RESP_ENCODER_READINGS)
+	{
+	}
+};
+
+struct TFrameCMD_EMS22A_start_payload_t
+{
+	int8_t ENCODER_ABS_CS, ENCODER_ABS_CLK, ENCODER_ABS_DO;
+	uint16_t sampling_period_ms;
+
+	TFrameCMD_EMS22A_start_payload_t() :
+		sampling_period_ms(50)
+	{
+		ENCODER_ABS_CS=ENCODER_ABS_CLK=ENCODER_ABS_DO=0;
+	}
+};
+
+struct TFrameCMD_EMS22A_start : public TBaseFrame<TFrameCMD_EMS22A_start_payload_t>
+{
+	// Defaults:
+	TFrameCMD_EMS22A_start() : TBaseFrame(OP_START_EMS22A)
+	{
+	}
+};
+
+struct TFrameCMD_EMS22A_stop_payload_t
+{
+};
+struct TFrameCMD_EMS22A_stop : public TBaseFrame<TFrameCMD_EMS22A_stop_payload_t>
+{
+	// Defaults:
+	TFrameCMD_EMS22A_stop() : TBaseFrame(OP_STOP_EMS22A)
 	{
 	}
 };

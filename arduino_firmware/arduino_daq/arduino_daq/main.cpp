@@ -55,4 +55,5 @@ void loop()
 	processIncommingPkts();
 	processADCs();
 	processEncoders();
+	processEMS22A();
 }
