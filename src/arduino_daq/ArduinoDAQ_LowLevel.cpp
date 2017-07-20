@@ -34,7 +34,6 @@
 
 
 #include <arduino_daq/ArduinoDAQ_LowLevel.h>
-#include <arduino_daq/ArduinoDAQ_LowLevel.h>
 #include <arduino_daq/AnalogReading.h>
 #include <arduino_daq/EncodersReading.h>
 #include <functional>
@@ -211,6 +210,32 @@ bool ArduinoDAQ_LowLevel::initialize()
 				ROS_INFO(" ENC%i: A_pin=%i  B_pin=%i  Z_pin=%i",i,ENC_PIN_A[i],ENC_PIN_B[i],ENC_PIN_Z[i]);
 			}
 			this->CMD_ENCODERS_START(cmd);
+		}
+	}
+
+	// If provided via params, automatically start reading the absolute encoder
+	{
+		TFrameCMD_EMS22A_start_payload_t ENC_cfg;
+		int pin_cs=0, pin_clk=0, pin_do=0, sampling_period_ms = 100;
+
+		m_nh_params.getParam("ENCABS0_PIN_CS", pin_cs);
+		m_nh_params.getParam("ENCABS0_PIN_CLK",pin_clk);
+		m_nh_params.getParam("ENCABS0_PIN_DO",pin_do);
+		m_nh_params.getParam("ENCABS_MEASURE_PERIOD_MS",sampling_period_ms);
+
+		if (ENC_cfg.ENCODER_ABS_CS>0 && ENC_cfg.ENCODER_ABS_CLK>0 &&
+			ENC_cfg.ENCODER_ABS_DO>0)
+		{
+			ENC_cfg.ENCODER_ABS_CS = pin_cs;
+			ENC_cfg.ENCODER_ABS_CLK = pin_clk;
+			ENC_cfg.ENCODER_ABS_DO = pin_do;
+			ENC_cfg.sampling_period_ms = sampling_period_ms;
+
+			ROS_INFO("Starting ABSOLUTE ENCODER readings (period=%i ms) with: ",
+				sampling_period_ms);
+			ROS_INFO(" ENC0: CS_pin=%i  CLK_pin=%i  DO_pin=%i",pin_cs,
+				pin_clk, pin_do);
+			this->CMD_ENCODER_ABS_START(ENC_cfg);
 		}
 	}
 
@@ -547,6 +572,21 @@ bool ArduinoDAQ_LowLevel::CMD_ENCODERS_STOP()
 	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));
 }
 
+bool ArduinoDAQ_LowLevel::CMD_ENCODER_ABS_START(const TFrameCMD_EMS22A_start_payload_t &enc_config)
+{
+	TFrameCMD_EMS22A_start cmd;
+	cmd.payload = enc_config;
+	cmd.calc_and_update_checksum();
+
+	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));
+}
+bool ArduinoDAQ_LowLevel::CMD_ENCODER_ABS_STOP()
+{
+	TFrameCMD_EMS22A_stop cmd;
+	cmd.calc_and_update_checksum();
+
+	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));
+}
 
 bool ArduinoDAQ_LowLevel::CMD_PWM(int pin_index, uint8_t pwm_value)
 {

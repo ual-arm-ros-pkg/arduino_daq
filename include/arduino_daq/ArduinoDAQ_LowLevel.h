@@ -89,13 +89,17 @@ public:
 	bool CMD_PWM(int pin_index, uint8_t pwm_value);
 	bool CMD_ENCODERS_START(const TFrameCMD_ENCODERS_start_payload_t &enc_config);
 	bool CMD_ENCODERS_STOP();
+	bool CMD_ENCODER_ABS_START(const TFrameCMD_EMS22A_start_payload_t &enc_config);
+	bool CMD_ENCODER_ABS_STOP();
 
 	void set_ADC_readings_callback(const std::function<void(TFrame_ADC_readings_payload_t)> &f) {
 		m_adc_callback = f;
 	}
-
 	void set_ENCODERS_readings_callback(const std::function<void(TFrame_ENCODERS_readings_payload_t)> &f) {
 		m_enc_callback = f;
+	}
+	void set_ENCODER_ABS_readings_callback(const std::function<void(TFrame_ENCODER_ABS_reading_payload_t)> &f) {
+		m_encabs_callback = f;
 	}
 
 protected:
@@ -112,6 +116,7 @@ protected:
 
 	std::function<void(TFrame_ADC_readings_payload_t)> m_adc_callback;
 	std::function<void(TFrame_ENCODERS_readings_payload_t)> m_enc_callback;
+	std::function<void(TFrame_ENCODER_ABS_reading_payload_t)> m_encabs_callback;
 
 #ifdef HAVE_ROS
 	void daqSetDigitalPinCallback(int index, const std_msgs::Bool::ConstPtr& msg);

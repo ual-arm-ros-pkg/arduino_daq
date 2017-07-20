@@ -77,6 +77,11 @@ with Channel A=pin 2, Channel B=pin 8, and Channel Z=pin 9 (set channel Z to "0"
 
         rosrun arduino_daq arduino_daq_node _SERIAL_PORT:=/dev/ttyUSB0 _ENC0_PIN_A:=2 _ENC0_PIN_B:=8 _ENC0_PIN_Z:=9
 
+* Example use of a EMS22A absolute encoder:
+", pin_cs);
+
+        rosrun arduino_daq arduino_daq_node _SERIAL_PORT:=/dev/ttyUSB0 _ENCABS0_PIN_CS:=1  _ENCABS0_PIN_CLK:=2  _ENCABS0_PIN_DO:=2 _ENCABS_MEASURE_PERIOD_MS:=100
+
 
 ROS graph
 =======================
