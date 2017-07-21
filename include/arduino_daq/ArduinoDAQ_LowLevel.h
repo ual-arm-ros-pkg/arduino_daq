@@ -65,7 +65,7 @@ public:
 	ros::NodeHandle m_nh_params;
 
 	std::vector<ros::Subscriber> m_sub_GPIO_outputs, m_sub_dac, m_sub_PWM_outputs;
-	ros::Publisher  m_pub_ADC, m_pub_ENC;
+	ros::Publisher  m_pub_ADC, m_pub_ENC, m_pub_ENC_ABS;
 #endif
 
 	void setSerialPort(const std::string &sSerialName) {
@@ -124,6 +124,7 @@ protected:
 	void daqSetPWMCallback(int pwm_pin_index, const std_msgs::UInt8::ConstPtr& msg);
 	void daqOnNewADCCallback(const TFrame_ADC_readings_payload_t &data);
 	void daqOnNewENCCallback(const TFrame_ENCODERS_readings_payload_t &data);
+	void daqOnNewENCAbsCallback(const TFrame_ENCODER_ABS_reading_payload_t &data);
 #endif
 
 };

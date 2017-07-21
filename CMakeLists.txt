@@ -31,6 +31,7 @@ add_message_files(
   FILES
   AnalogReading.msg
   EncodersReading.msg
+	EncoderAbsReading.msg
 )
 
 generate_messages(DEPENDENCIES std_msgs)

@@ -36,8 +36,9 @@
 #include <arduino_daq/ArduinoDAQ_LowLevel.h>
 #include <arduino_daq/AnalogReading.h>
 #include <arduino_daq/EncodersReading.h>
-#include <functional>
+#include <arduino_daq/EncoderAbsReading.h>
 #include <cstring>
+#include <functional>
 #include <array>
 #include <thread>
 #include <chrono>
@@ -285,6 +286,18 @@ bool ArduinoDAQ_LowLevel::iterate()
 					daqOnNewENCCallback(rx.payload);
 				}
 				break;
+
+				case RESP_EMS22A_READINGS:
+				{
+					TFrame_ENCODER_ABS_reading rx;
+					::memcpy((uint8_t*)&rx, &rxFrame[0], sizeof(rx));
+
+					if (m_encabs_callback) {
+						m_encabs_callback(rx.payload);
+					}
+					daqOnNewENCAbsCallback(rx.payload);
+				}
+				break;
 			};
 		}
 	}
@@ -348,6 +361,18 @@ void ArduinoDAQ_LowLevel::daqOnNewENCCallback(const TFrame_ENCODERS_readings_pay
 
 	m_pub_ENC.publish(msg);
 }
+
+void ArduinoDAQ_LowLevel::daqOnNewENCAbsCallback(const TFrame_ENCODER_ABS_reading_payload_t &data)
+{
+	arduino_daq::EncoderAbsReading msg;
+
+	msg.timestamp_ms   = data.timestamp_ms;
+	msg.encoder_status = data.enc_status;
+	msg.encoder_value  = data.enc_pos;
+
+	m_pub_ENC_ABS.publish(msg);
+}
+
 
 #endif
 
