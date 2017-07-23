@@ -2,9 +2,13 @@ arduino_daq
 ==================
 
 This package contains an AVR8 firmware, a host standalone C++ library,
-and a ROS node for UAL eCAR's Arduino-based DAQ system, with 4 analog
-outputs (MAX5500), ADC inputs, GPIO, PWM and quadrature encoder
-decoding support.
+and a ROS node for UAL eCAR's Arduino-based DAQ system, but it is generic
+enough for use in many other applications.
+
+The DAQ features: 4 analog outputs (via an optional MAX5500 chip), ADC inputs,
+GPIO and PWM outputs, 2 channels quadrature encoder decoding support, and
+one absolute encoder (EMS22A) input. Outputs feature an optional watchdog timer
+that resets the output if not updated periodically (default period is 1 second).
 
 The precompiled firmware is for atmega328P, but it could be recompiled
 for other larger versions with more I/O pins.

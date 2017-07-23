@@ -554,6 +554,7 @@ bool ArduinoDAQ_LowLevel::CMD_DAC(int dac_index,double dac_value_volts)
     cmd.payload.dac_index = dac_index;
     cmd.payload.dac_value_HI = dac_counts >> 8;
     cmd.payload.dac_value_LO = dac_counts & 0x00ff;
+    cmd.payload.flag_enable_timeout = true;
 
     cmd.calc_and_update_checksum();
 
@@ -618,6 +619,7 @@ bool ArduinoDAQ_LowLevel::CMD_PWM(int pin_index, uint8_t pwm_value)
 	TFrameCMD_SET_PWM cmd;
 	cmd.payload.pin_index = pin_index;
 	cmd.payload.analog_value = pwm_value;
+	cmd.payload.flag_enable_timeout = true;
 	cmd.calc_and_update_checksum();
 
 	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));

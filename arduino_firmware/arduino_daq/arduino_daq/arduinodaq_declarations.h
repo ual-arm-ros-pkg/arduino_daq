@@ -45,6 +45,7 @@ void processADCs();
 void processEncoders();
 void processEMS22A();
 void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*data);
+void process_timeouts();
 void flash_led(int ntimes, int nms);
 void init_encoders(const TFrameCMD_ENCODERS_start_payload_t &cmd);
 
@@ -53,6 +54,4 @@ extern uint8_t        num_active_ADC_channels;
 #define MAX_ADC_CHANNELS  8
 extern uint8_t        ADC_active_channels[MAX_ADC_CHANNELS];
 extern uint16_t       ADC_sampling_period_ms;
-
-
 

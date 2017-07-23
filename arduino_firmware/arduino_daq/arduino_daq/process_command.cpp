@@ -54,6 +54,29 @@
 // Fixed pins configuration for this hardware:
 #include "config.h"
 
+struct TimeoutData
+{
+	unsigned long TIMEOUT_TICKS;   //!< Number of millis() ticks to timeout an output signal. Default=1000 ms
+	
+	bool PWM_any;
+	unsigned long PWM_last_changed[16];  //!< Last timestamp (millis()) for each PWM channel
+
+	bool DAC_any;
+	unsigned long DAC_last_changed[4];  //!< Last timestamp (millis()) for each DAC channel
+
+	TimeoutData() :
+		TIMEOUT_TICKS(1000),
+		PWM_any(false),
+		DAC_any(false)
+	{
+		::memset(PWM_last_changed,0, sizeof(PWM_last_changed));
+		::memset(DAC_last_changed,0, sizeof(DAC_last_changed));
+	}
+};
+
+TimeoutData PendingTimeouts;
+
+
 void flash_led(int ntimes, int nms)
 {
 	pinMode(PIN_LED,OUTPUT);
@@ -77,7 +100,10 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 	case OP_SET_DAC:
 	{
 		if (datalen!=sizeof(TFrameCMD_SetDAC_payload_t)) return send_simple_opcode_frame(RESP_WRONG_LEN);
-		
+
+		TFrameCMD_SetDAC_payload_t dac_req;
+		memcpy(&dac_req,data, sizeof(dac_req));
+
 		// Init upon first usage:
 		static bool dac_init = false;
 		if (!dac_init)
@@ -85,9 +111,17 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 			mod_dac_max5500_init();
 			dac_init = true;
 		}
-		const uint8_t dac_idx = data[0];
-		const uint16_t dac_value = (uint16_t(data[1]) << 8)  | data[2];
-		mod_dac_max5500_update_single_DAC(dac_idx,dac_value);
+		const uint16_t dac_value = (uint16_t(dac_req.dac_value_HI) << 8) | dac_req.dac_value_LO;
+		mod_dac_max5500_update_single_DAC(dac_req.dac_index,dac_value);
+
+		if (dac_req.flag_enable_timeout)
+		{
+			if (dac_req.dac_index<sizeof(PendingTimeouts.DAC_last_changed)/sizeof(PendingTimeouts.DAC_last_changed[0]))
+			{
+				PendingTimeouts.DAC_any=true;
+				PendingTimeouts.DAC_last_changed[dac_req.dac_index] = millis();
+			}
+		}
 
 		// send answer back:
 		send_simple_opcode_frame(RESP_SET_DAC);
@@ -167,6 +201,15 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 		pinMode(pwm_req.pin_index, OUTPUT);
 		analogWrite(pwm_req.pin_index, pwm_req.analog_value);
 
+		if (pwm_req.flag_enable_timeout)
+		{
+			if (pwm_req.pin_index<sizeof(PendingTimeouts.PWM_last_changed)/sizeof(PendingTimeouts.PWM_last_changed[0])) 
+			{
+				PendingTimeouts.PWM_any=true;
+				PendingTimeouts.PWM_last_changed[pwm_req.pin_index] = millis();
+			}
+		}
+
 		// send answer back:
 		send_simple_opcode_frame(RESP_SET_PWM);
 	}
@@ -234,3 +277,47 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 	break;
 	};
 }
+
+void process_timeouts()
+{
+	TimeoutData &pt = PendingTimeouts; // shortcut
+	const unsigned long tnow = millis();
+
+	if (pt.DAC_any)
+	{
+		pt.DAC_any=false; // if no timeout is set, don't waste time in the next time we are called.
+		for (uint8_t i=0;i<sizeof(pt.DAC_last_changed)/sizeof(pt.DAC_last_changed[0]);i++)
+		{
+			if (pt.DAC_last_changed[i]!=0)
+			{
+				pt.DAC_any=true;
+				if (tnow - pt.DAC_last_changed[i] > pt.TIMEOUT_TICKS)
+				{
+					// Watchdog timer event!
+					pt.DAC_last_changed[i]=0; // reset this one
+					mod_dac_max5500_update_single_DAC(i,0);
+				}
+				
+			}
+		}
+	}
+	
+	if (pt.PWM_any)
+	{
+		pt.PWM_any=false; // if no timeout is set, don't waste time in the next time we are called.
+		for (uint8_t i=0;i<sizeof(pt.PWM_last_changed)/sizeof(pt.PWM_last_changed[0]);i++)
+		{
+			if (pt.PWM_last_changed[i]!=0)
+			{
+				pt.PWM_any=true;
+				if (tnow - pt.PWM_last_changed[i] > pt.TIMEOUT_TICKS)
+				{
+					// Watchdog timer event!
+					pt.PWM_last_changed[i]=0; // reset this one
+					analogWrite(i, 0);
+				}
+			}
+		}
+	}
+}
+

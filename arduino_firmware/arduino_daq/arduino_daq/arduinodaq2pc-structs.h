@@ -143,6 +143,11 @@ struct TFrameCMD_SetDAC_payload_t
 {
     uint8_t  dac_index;
     uint8_t  dac_value_HI, dac_value_LO;
+    uint8_t  flag_enable_timeout : 1;   // bitfield: 1 bit flag
+    TFrameCMD_SetDAC_payload_t() :
+        dac_index(0), dac_value_HI(0), dac_value_LO(0),flag_enable_timeout(0)
+    {
+    }
 };
 struct TFrameCMD_SetDAC : public TBaseFrame<TFrameCMD_SetDAC_payload_t>
 {
@@ -218,9 +223,11 @@ struct TFrameCMD_SET_PWM_payload_t
 {
 	uint8_t  pin_index;
 	uint8_t  analog_value; //!< 0-255 maps to 0% to 100% duty cycle
+	uint8_t  flag_enable_timeout : 1;   // bitfield: 1 bit flag
 	TFrameCMD_SET_PWM_payload_t() :
 		pin_index(0),
-		analog_value(0)
+		analog_value(0),
+		flag_enable_timeout(0)
 	{
 	}
 };

@@ -56,4 +56,7 @@ void loop()
 	processADCs();
 	processEncoders();
 	processEMS22A();
+
+	// Handle possible timeouts of previous commands:
+	process_timeouts();
 }
