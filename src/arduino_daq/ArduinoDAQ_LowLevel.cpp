@@ -136,6 +136,11 @@ bool ArduinoDAQ_LowLevel::initialize()
 	// Publisher: ENC data
 	m_pub_ENC = m_nh.advertise<arduino_daq::EncodersReading>("arduino_daq_encoders", 10);
 
+	// Publisher: ABS ENC data
+	m_pub_ENC_ABS = m_nh.advertise<arduino_daq::EncoderAbsReading>("arduino_daq_abs_encoder", 10);
+
+	MRPT_TODO("enc abs pub");
+
 	// Only for ROS:
 	// If provided via params, automatically start ADC conversion:
 	{
@@ -160,7 +165,7 @@ bool ArduinoDAQ_LowLevel::initialize()
 			cmd.use_internal_refvolt = ADC_INTERNAL_REFVOLT ? 1:0;
 			cmd.measure_period_ms = ADC_MEASURE_PERIOD_MS;
 
-			ROS_INFO("Starting continuous ADC readings with: "
+			MRPT_LOG_INFO_FMT	("Starting continuous ADC readings with: "
 				"int_ref_volt=%i "
 				"measure_period_ms=%i ms"
 				"channels: %i %i %i %i %i %i %i %i"
@@ -206,9 +211,9 @@ bool ArduinoDAQ_LowLevel::initialize()
 		{
 			cmd.sampling_period_ms = ENC_MEASURE_PERIOD_MS;
 
-			ROS_INFO("Starting ENCODERS readings with: ");
+			MRPT_LOG_INFO("Starting ENCODERS readings with: ");
 			for (int i=0;i<TFrameCMD_ENCODERS_start_payload_t::NUM_ENCODERS;i++) {
-				ROS_INFO(" ENC%i: A_pin=%i  B_pin=%i  Z_pin=%i",i,ENC_PIN_A[i],ENC_PIN_B[i],ENC_PIN_Z[i]);
+				MRPT_LOG_INFO_FMT(" ENC%i: A_pin=%i  B_pin=%i  Z_pin=%i",i,ENC_PIN_A[i],ENC_PIN_B[i],ENC_PIN_Z[i]);
 			}
 			this->CMD_ENCODERS_START(cmd);
 		}
@@ -224,17 +229,16 @@ bool ArduinoDAQ_LowLevel::initialize()
 		m_nh_params.getParam("ENCABS0_PIN_DO",pin_do);
 		m_nh_params.getParam("ENCABS_MEASURE_PERIOD_MS",sampling_period_ms);
 
-		if (ENC_cfg.ENCODER_ABS_CS>0 && ENC_cfg.ENCODER_ABS_CLK>0 &&
-			ENC_cfg.ENCODER_ABS_DO>0)
+		if (pin_cs>0 && pin_clk>0 && pin_do>0)
 		{
 			ENC_cfg.ENCODER_ABS_CS = pin_cs;
 			ENC_cfg.ENCODER_ABS_CLK = pin_clk;
 			ENC_cfg.ENCODER_ABS_DO = pin_do;
 			ENC_cfg.sampling_period_ms = sampling_period_ms;
 
-			ROS_INFO("Starting ABSOLUTE ENCODER readings (period=%i ms) with: ",
+			MRPT_LOG_INFO_FMT("Starting ABSOLUTE ENCODER readings (period=%i ms) with: ",
 				sampling_period_ms);
-			ROS_INFO(" ENC0: CS_pin=%i  CLK_pin=%i  DO_pin=%i",pin_cs,
+			MRPT_LOG_INFO_FMT(" ENC0: CS_pin=%i  CLK_pin=%i  DO_pin=%i",pin_cs,
 				pin_clk, pin_do);
 			this->CMD_ENCODER_ABS_START(ENC_cfg);
 		}
