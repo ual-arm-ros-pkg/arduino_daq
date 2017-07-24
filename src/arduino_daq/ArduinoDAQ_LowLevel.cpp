@@ -139,8 +139,6 @@ bool ArduinoDAQ_LowLevel::initialize()
 	// Publisher: ABS ENC data
 	m_pub_ENC_ABS = m_nh.advertise<arduino_daq::EncoderAbsReading>("arduino_daq_abs_encoder", 10);
 
-	MRPT_TODO("enc abs pub");
-
 	// Only for ROS:
 	// If provided via params, automatically start ADC conversion:
 	{

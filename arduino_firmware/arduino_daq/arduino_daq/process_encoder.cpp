@@ -45,6 +45,7 @@
 
 unsigned long  PC_last_millis = 0;
 uint16_t       PC_sampling_period_ms = 500;
+bool           ENCODERS_active       = false;
 
 struct EncoderStatus
 {
@@ -157,6 +158,9 @@ void init_encoders(const TFrameCMD_ENCODERS_start_payload_t &cmd)
 
 void processEncoders()
 {
+	if (!ENCODERS_active)
+		return;
+
 #ifdef USE_ENCODER_DEBUG_LED
 	pinMode(PIN_ENCODER_DEBUG_LED, OUTPUT);
 	digitalWrite(PIN_ENCODER_DEBUG_LED,ENC_STATUS[0].led);

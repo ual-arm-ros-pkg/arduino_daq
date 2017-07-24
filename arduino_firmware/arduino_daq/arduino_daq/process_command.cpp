@@ -223,6 +223,7 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 		memcpy(&enc_req,data, sizeof(enc_req));
 
 		init_encoders(enc_req);
+		ENCODERS_active=true;
 
 		// send answer back:
 		send_simple_opcode_frame(RESP_START_ENCODERS);
@@ -233,6 +234,7 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 	{
 		TFrameCMD_ENCODERS_start_payload_t cmd_empty;
 		init_encoders(cmd_empty);
+		ENCODERS_active=false;
 
 		// send answer back:
 		send_simple_opcode_frame(RESP_STOP_ENCODERS);
@@ -250,6 +252,7 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 			EMS22A_req.ENCODER_ABS_DO, EMS22A_req.sampling_period_ms
 			))
 		{
+			EMS22A_active = true;
 			// send answer back:
 			send_simple_opcode_frame(RESP_START_EMS22A);
 		}

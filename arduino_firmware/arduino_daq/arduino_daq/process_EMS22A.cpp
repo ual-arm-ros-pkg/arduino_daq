@@ -52,15 +52,19 @@ bool init_EMS22A(int8_t ENCODER_ABS_CS, int8_t ENCODER_ABS_CLK, int8_t ENCODER_A
 	pinMode(ENCODER_ABS_DO, INPUT);
 
 	digitalWrite(ENCODER_ABS_CLK, HIGH);
-	digitalWrite(ENCODER_ABS_CS, LOW);
+	digitalWrite(ENCODER_ABS_CS, HIGH);
 	
 	return true; // all ok
 }
 
  uint16_t read_EMS22A()
  {
-	 digitalWrite(ENCODER_ABS_CS, HIGH);
-	 digitalWrite(ENCODER_ABS_CS, LOW);
+	pinMode(ENCODER_ABS_CS, OUTPUT);
+	pinMode(ENCODER_ABS_CLK, OUTPUT);
+	pinMode(ENCODER_ABS_DO, INPUT);
+
+	digitalWrite(ENCODER_ABS_CS, LOW);
+	delayMicroseconds(2);
 
 	uint16_t pos = 0;
 	 for (int i=0; i<16; i++) {
@@ -75,6 +79,8 @@ bool init_EMS22A(int8_t ENCODER_ABS_CS, int8_t ENCODER_ABS_CLK, int8_t ENCODER_A
 	 }
 	 digitalWrite(ENCODER_ABS_CLK, LOW);  delayMicroseconds(1);
 	 digitalWrite(ENCODER_ABS_CLK, HIGH);  delayMicroseconds(1);
+
+	digitalWrite(ENCODER_ABS_CS, HIGH);
 	 return pos;
  }
 
@@ -101,7 +107,7 @@ void processEMS22A()
 	
 	TFrame_ENCODER_ABS_reading tx;
 	// send answer back:
-	tx.payload.timestamp_ms = millis();
+	tx.payload.timestamp_ms = tnow;
 	tx.payload.enc_pos = enc_pos;
 	tx.payload.enc_status = enc_status;
 	tx.calc_and_update_checksum();
