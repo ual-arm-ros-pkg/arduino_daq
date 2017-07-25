@@ -97,6 +97,8 @@ enum opcode_t {
 
 
 	// error codes:
+	RESP_CHECKSUM_ERROR    = 0xfa,
+	RESP_FRAME_ERROR       = 0xfb,
 	RESP_INVALID_PARAMS    = 0xfc,
 	RESP_WRONG_LEN         = 0xfd,
 	RESP_UNKNOWN_OPCODE    = 0xfe

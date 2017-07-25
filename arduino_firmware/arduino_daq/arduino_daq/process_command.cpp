@@ -87,7 +87,7 @@ void flash_led(int ntimes, int nms)
 	}
 }
 
-static void send_simple_opcode_frame(const uint8_t op)
+void send_simple_opcode_frame(const uint8_t op)
 {
 	const uint8_t rx[] = { FRAME_START_FLAG, op, 0x00, 0x00, FRAME_END_FLAG };
 	Serial.write(rx,sizeof(rx));

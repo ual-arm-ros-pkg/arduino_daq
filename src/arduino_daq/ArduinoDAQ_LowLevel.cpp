@@ -77,6 +77,10 @@ ArduinoDAQ_LowLevel::ArduinoDAQ_LowLevel() :
 #ifdef HAVE_ROS
 	this->logRegisterCallback(&log_callback, this);
 #endif
+
+#ifdef DEBUG_TRACES
+	this->setMinLoggingLevel(mrpt::utils::LVL_DEBUG);
+#endif
 }
 
 ArduinoDAQ_LowLevel::~ArduinoDAQ_LowLevel()
@@ -386,7 +390,7 @@ bool ArduinoDAQ_LowLevel::AttemptConnection()
 		m_serial.open(m_serial_port_name);
 
 		// Set basic params:
-		m_serial.setConfig(m_serial_port_baudrate);
+		m_serial.setConfig(m_serial_port_baudrate, 0/*parity*/, 8 /*bits*/, 2 /*stop bits*/);
 		m_serial.setTimeouts(100,0,10,0,50);
 
 		return true;
@@ -489,7 +493,7 @@ bool ArduinoDAQ_LowLevel::ReceiveFrameFromController(std::vector<uint8_t> &rxFra
 		if (!nFrameBytes && buf[0]!= FRAME_START_FLAG )
 		{
 			is_ok = false;
-			//cout << "[rx] Reset frame (start flag)\n";
+			MRPT_LOG_DEBUG("[rx] Reset frame (start flag)");
 		}
 
 		if (nFrameBytes>2 && nFrameBytes+nRead==lengthField)
@@ -497,7 +501,7 @@ bool ArduinoDAQ_LowLevel::ReceiveFrameFromController(std::vector<uint8_t> &rxFra
 			if (buf[nFrameBytes+nRead-1]!=FRAME_END_FLAG)
 			{
 				is_ok= false;
-				//cout << "[rx] Reset frame (end flag)\n";
+				MRPT_LOG_DEBUG("[rx] Reset frame (end flag)");
 			}
 			//else { cout << "[rx] Frame OK\n"; }
 		}
