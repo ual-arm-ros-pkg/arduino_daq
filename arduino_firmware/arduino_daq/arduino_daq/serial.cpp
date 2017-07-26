@@ -53,8 +53,6 @@ void processIncommingPkts()
 	while (Serial.available())
 	{
 		const uint8_t b = Serial.read();
-		Serial.write(b);
-		continue;
 
 		// sanity:
 		if (rx_buf_len==0)
@@ -66,6 +64,10 @@ void processIncommingPkts()
 
 		// store:
 		rx_buf[rx_buf_len++] = b;
+
+		//char buf[10];
+		//sprintf(buf,"rx: 0x%02X\n",b);
+		//Serial.print(buf);
 
 		if (rx_buf_len==5+rx_buf[2])
 		{
