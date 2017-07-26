@@ -47,7 +47,7 @@
 
 void setup()
 {
-	Serial.begin(115200, SERIAL_8N2);
+	Serial.begin(115200);
 }
 
 void loop()

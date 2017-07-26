@@ -390,7 +390,7 @@ bool ArduinoDAQ_LowLevel::AttemptConnection()
 		m_serial.open(m_serial_port_name);
 
 		// Set basic params:
-		m_serial.setConfig(m_serial_port_baudrate, 0/*parity*/, 8 /*bits*/, 2 /*stop bits*/);
+		m_serial.setConfig(m_serial_port_baudrate);
 		m_serial.setTimeouts(100,0,10,0,50);
 
 		return true;
