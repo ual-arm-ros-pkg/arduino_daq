@@ -65,6 +65,7 @@ enum opcode_t {
 	// -----------------------------
 	// COMMANDS PC -> Arduino
 	// -----------------------------
+	OP_NOP             = 0x00,
 	OP_SET_DAC         = 0x10,
 	OP_SET_GPIO        = 0x11,
 	OP_GET_GPIO        = 0x12,
@@ -81,6 +82,7 @@ enum opcode_t {
 	// -----------------------------
 	RESP_OFFSET = 0x70,
 	// -----------------------------
+	RESP_NOP              = OP_NOP + RESP_OFFSET,
 	RESP_SET_DAC          = OP_SET_DAC + RESP_OFFSET,
 	RESP_SET_GPIO         = OP_SET_GPIO + RESP_OFFSET,
 	RESP_GET_GPIO         = OP_GET_GPIO + RESP_OFFSET,
@@ -139,6 +141,16 @@ struct TBaseFrame
         for (unsigned int i=0;i<len;i++) ret+=*data++;
         return ret;
     }
+};
+
+struct TFrameCMD_NOP_payload_t
+{
+};
+struct TFrameCMD_NOP : public TBaseFrame<TFrameCMD_NOP_payload_t>
+{
+	TFrameCMD_NOP() : TBaseFrame(OP_NOP)
+	{
+	}
 };
 
 struct TFrameCMD_SetDAC_payload_t

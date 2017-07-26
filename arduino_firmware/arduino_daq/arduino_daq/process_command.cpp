@@ -97,6 +97,15 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 {
 	switch (opcode)
 	{
+	case OP_NOP:
+	{
+		if (datalen!=sizeof(TFrameCMD_NOP_payload_t)) return send_simple_opcode_frame(RESP_WRONG_LEN);
+
+		// No-operation: just a fake command to check if comms are alive
+		return send_simple_opcode_frame(RESP_NOP);
+	}
+	break;
+	
 	case OP_SET_DAC:
 	{
 		if (datalen!=sizeof(TFrameCMD_SetDAC_payload_t)) return send_simple_opcode_frame(RESP_WRONG_LEN);

@@ -122,9 +122,9 @@ protected:
 	void daqSetDigitalPinCallback(int index, const std_msgs::Bool::ConstPtr& msg);
 	void daqSetDACCallback(int dac_index, const std_msgs::Float64::ConstPtr& msg);
 	void daqSetPWMCallback(int pwm_pin_index, const std_msgs::UInt8::ConstPtr& msg);
+#endif
 	void daqOnNewADCCallback(const TFrame_ADC_readings_payload_t &data);
 	void daqOnNewENCCallback(const TFrame_ENCODERS_readings_payload_t &data);
 	void daqOnNewENCAbsCallback(const TFrame_ENCODER_ABS_reading_payload_t &data);
-#endif
 
 };

@@ -34,9 +34,6 @@
 
 
 #include <arduino_daq/ArduinoDAQ_LowLevel.h>
-#include <arduino_daq/AnalogReading.h>
-#include <arduino_daq/EncodersReading.h>
-#include <arduino_daq/EncoderAbsReading.h>
 #include <cstring>
 #include <functional>
 #include <array>
@@ -45,6 +42,9 @@
 
 #ifdef HAVE_ROS
 #include <ros/console.h>
+#include <arduino_daq/AnalogReading.h>
+#include <arduino_daq/EncodersReading.h>
+#include <arduino_daq/EncoderAbsReading.h>
 #endif
 
 #include <iostream>
@@ -261,7 +261,7 @@ bool ArduinoDAQ_LowLevel::iterate()
 		return false;
 
 	std::vector<uint8_t> rxFrame;
-	while (++nFrames<MAX_FRAMES_PER_ITERATE && ReceiveFrameFromController(rxFrame))
+	while (ReceiveFrameFromController(rxFrame) && ++nFrames<MAX_FRAMES_PER_ITERATE)
 	{
 		// Process them:
 		//MRPT_LOG_INFO_STREAM  << "Rx frame, len=" << rxFrame.size();
@@ -306,6 +306,15 @@ bool ArduinoDAQ_LowLevel::iterate()
 				break;
 			};
 		}
+	}
+
+	// if no frame was received, ping the uC to keep comms alive:
+	if (!nFrames)
+	{
+		// Send a dummy NOP command
+		TFrameCMD_NOP cmd;
+		cmd.calc_and_update_checksum();
+		return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));
 	}
 
 	return true;
@@ -418,7 +427,7 @@ bool ArduinoDAQ_LowLevel::WriteBinaryFrame(const uint8_t *full_frame, const size
 			s+=mrpt::format("TX frame (%u bytes): ", (unsigned int) full_frame_len);
 			for (size_t i=0;i< full_frame_len;i++)
 				s+=mrpt::format("%02X ", full_frame[i]);
-			ROS_INFO("Tx frame: %s", s.c_str());
+			MRPT_LOG_INFO_FMT("Tx frame: %s", s.c_str());
 		}
 #endif
 
@@ -530,7 +539,7 @@ bool ArduinoDAQ_LowLevel::ReceiveFrameFromController(std::vector<uint8_t> &rxFra
 			s+=mrpt::format("RX frame (%u bytes): ", (unsigned int) lengthField);
 			for (size_t i=0;i< lengthField;i++)
 				s+=mrpt::format("%02X ", rxFrame[i]);
-			ROS_INFO("%s", s.c_str());
+			MRPT_LOG_INFO_FMT("%s", s.c_str());
 		}
 #endif
 

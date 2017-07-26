@@ -46,7 +46,7 @@ int main(int argc, char **argv)
 		ArduinoDAQ_LowLevel  daq;
 		daq.initialize();
 
-		ros::Rate loop_rate(100);
+		ros::Rate loop_rate(500);
 		while (ros::ok())
 		{
 			ros::spinOnce();
