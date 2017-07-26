@@ -42,8 +42,12 @@ unsigned long  EMS22A_last_millis        = 0;
 uint16_t       EMS22A_sampling_period_ms = 200;
 bool           EMS22A_active             = false;
 
-bool init_EMS22A(int8_t ENCODER_ABS_CS, int8_t ENCODER_ABS_CLK, int8_t ENCODER_ABS_DO, uint16_t sampling_period_ms)
+bool init_EMS22A(int8_t init_ENCODER_ABS_CS, int8_t init_ENCODER_ABS_CLK, int8_t init_ENCODER_ABS_DO, uint16_t init_sampling_period_ms)
 {
+	ENCODER_ABS_CS  = init_ENCODER_ABS_CS;
+	ENCODER_ABS_CLK = init_ENCODER_ABS_CLK;
+	ENCODER_ABS_DO  = init_ENCODER_ABS_DO;
+	EMS22A_sampling_period_ms = init_sampling_period_ms;
 	if (ENCODER_ABS_CS<=0 || ENCODER_ABS_CLK<=0 || ENCODER_ABS_DO<=0)
 		return false; // error
 	

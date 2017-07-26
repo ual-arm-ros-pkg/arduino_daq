@@ -252,6 +252,7 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 			EMS22A_req.ENCODER_ABS_DO, EMS22A_req.sampling_period_ms
 			))
 		{
+
 			EMS22A_active = true;
 			// send answer back:
 			send_simple_opcode_frame(RESP_START_EMS22A);
