@@ -5,6 +5,7 @@ project(arduino_daq)
 
 option(BUILD_ROS "Build ROS node" ON)
 option(BUILD_STANDALONE_LIB "Build standalone C++ library" OFF)
+option(BUILD_STANDALONE_APP "Build standalone example app" OFF)
 
 
 IF (BUILD_ROS)
@@ -148,4 +149,8 @@ ENDIF() # BUILD_ROS
 
 IF(BUILD_STANDALONE_LIB)
 	ADD_SUBDIRECTORY(libarduinodaq)
+ENDIF()
+
+IF(BUILD_STANDALONE_APP)
+	ADD_SUBDIRECTORY(example_app)
 ENDIF()
