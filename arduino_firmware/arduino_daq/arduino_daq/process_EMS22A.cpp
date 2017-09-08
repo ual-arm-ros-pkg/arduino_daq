@@ -40,7 +40,7 @@ int ENCODER_ABS_CLK = A3;
 int ENCODER_ABS_DO  = A2;
 unsigned long  EMS22A_last_millis        = 0;
 uint16_t       EMS22A_sampling_period_ms = 200;
-bool           EMS22A_active             = true; /*false*/
+bool           EMS22A_active             = false;
 
 bool init_EMS22A(int8_t init_ENCODER_ABS_CS, int8_t init_ENCODER_ABS_CLK, int8_t init_ENCODER_ABS_DO, uint16_t init_sampling_period_ms)
 {
@@ -61,8 +61,8 @@ bool init_EMS22A(int8_t init_ENCODER_ABS_CS, int8_t init_ENCODER_ABS_CLK, int8_t
 	return true; // all ok
 }
 
- uint16_t read_EMS22A()
- {
+uint16_t read_EMS22A()
+{
 	pinMode(ENCODER_ABS_CS, OUTPUT);
 	pinMode(ENCODER_ABS_CLK, OUTPUT);
 	pinMode(ENCODER_ABS_DO, INPUT);
@@ -71,7 +71,7 @@ bool init_EMS22A(int8_t init_ENCODER_ABS_CS, int8_t init_ENCODER_ABS_CLK, int8_t
 	delayMicroseconds(2);
 
 	uint16_t pos = 0;
-	 for (int i=0; i<16; i++) {
+	for (int i=0; i<16; i++) {
 		 digitalWrite(ENCODER_ABS_CLK, LOW);  delayMicroseconds(1);
 		 digitalWrite(ENCODER_ABS_CLK, HIGH); delayMicroseconds(1);
 		 
@@ -81,12 +81,10 @@ bool init_EMS22A(int8_t init_ENCODER_ABS_CS, int8_t init_ENCODER_ABS_CLK, int8_t
 			 pos |= 0x01;
 		 }
 	 }
-	 digitalWrite(ENCODER_ABS_CLK, LOW);  delayMicroseconds(1);
-	 digitalWrite(ENCODER_ABS_CLK, HIGH);  delayMicroseconds(1);
 
 	digitalWrite(ENCODER_ABS_CS, HIGH);
-	 return pos;
- }
+	return pos;
+}
 
 void processEMS22A()
 {
