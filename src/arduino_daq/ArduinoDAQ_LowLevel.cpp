@@ -55,9 +55,6 @@ using namespace mrpt::utils;
 
 #define DEBUG_TRACES
 
-double pos_ant = 0;
-bool paso = false;
-
 #ifdef HAVE_ROS
 void log_callback(const std::string &msg, const mrpt::utils::VerbosityLevel level, const std::string &loggerName, const mrpt::system::TTimeStamp timestamp, void *userParam)
 {
@@ -386,25 +383,8 @@ void ArduinoDAQ_LowLevel::daqOnNewENCAbsCallback(const TFrame_ENCODER_ABS_readin
 
 	msg.timestamp_ms   = data.timestamp_ms;
 	msg.encoder_status = data.enc_status;
+	msg.encoder_value  = data.enc_pos;
 
-	if(pos_ant == 0 && data.enc_pos < 280)
-	{
-		paso = true;
-	}
-
-	if(data.enc_pos - pos_ant < - 500 || paso == true)
-	{
-		msg.encoder_value  = data.enc_pos + 1024;
-		paso = true;
-		if(data.enc_pos + 1024 > 2000)
-		{
-			paso = false;
-		}
-	}
-	if(paso == false)
-	{
-		msg.encoder_value  = data.enc_pos;
-	}
 
 	m_pub_ENC_ABS.publish(msg);
 	pos_ant = data.enc_pos;
