@@ -385,9 +385,7 @@ void ArduinoDAQ_LowLevel::daqOnNewENCAbsCallback(const TFrame_ENCODER_ABS_readin
 	msg.encoder_status = data.enc_status;
 	msg.encoder_value  = data.enc_pos;
 
-
 	m_pub_ENC_ABS.publish(msg);
-	pos_ant = data.enc_pos;
 }
 
 
