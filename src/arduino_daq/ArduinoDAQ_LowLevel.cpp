@@ -311,7 +311,10 @@ bool ArduinoDAQ_LowLevel::iterate()
 	size_t nFrames = 0;
 
 	if (!m_serial.isOpen())
-		return false;
+	{
+		if (!this->initialize())
+			return false;
+	}
 
 	std::vector<uint8_t> rxFrame;
 	while (ReceiveFrameFromController(rxFrame) && ++nFrames<MAX_FRAMES_PER_ITERATE)
@@ -569,7 +572,6 @@ bool ArduinoDAQ_LowLevel::ReceiveFrameFromController(std::vector<uint8_t> &rxFra
 				is_ok= false;
 				MRPT_LOG_DEBUG("[rx] Reset frame (end flag)");
 			}
-			//else { cout << "[rx] Frame OK\n"; }
 		}
 
 		MRPT_TODO("Checksum");
