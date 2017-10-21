@@ -53,12 +53,18 @@ using namespace std;
 using namespace mrpt;
 using namespace mrpt::utils;
 
-//#define DEBUG_TRACES
+#define DEBUG_TRACES
 
 #ifdef HAVE_ROS
 void log_callback(const std::string &msg, const mrpt::utils::VerbosityLevel level, const std::string &loggerName, const mrpt::system::TTimeStamp timestamp, void *userParam)
 {
-	ROS_INFO("%s",msg.c_str());
+	switch (level)
+	{
+	case mrpt::utils::LVL_DEBUG: ROS_DEBUG("%s",msg.c_str()); break;
+	case mrpt::utils::LVL_INFO:  ROS_INFO("%s",msg.c_str()); break;
+	case mrpt::utils::LVL_WARN:  ROS_WARN("%s",msg.c_str()); break;
+	case mrpt::utils::LVL_ERROR: ROS_ERROR("%s",msg.c_str()); break;
+	};
 }
 #endif
 
@@ -242,6 +248,7 @@ bool ArduinoDAQ_LowLevel::initialize()
 				sampling_period_ms);
 			MRPT_LOG_INFO_FMT(" ENC0: CS_pin=%i  CLK_pin=%i  DO_pin=%i",pin_cs,
 				pin_clk, pin_do);
+
 			this->CMD_ENCODER_ABS_START(ENC_cfg);
 		}
 	}
@@ -249,6 +256,52 @@ bool ArduinoDAQ_LowLevel::initialize()
 #endif
 
 	return true;
+}
+
+void ArduinoDAQ_LowLevel::processIncommingFrame(const std::vector<uint8_t> &rxFrame)
+{
+	//MRPT_LOG_INFO_STREAM  << "Rx frame, len=" << rxFrame.size();
+	if (rxFrame.size() >= 5)
+	{
+		switch (rxFrame[1])
+		{
+			case RESP_ADC_READINGS:
+			{
+				TFrame_ADC_readings rx;
+				::memcpy((uint8_t*)&rx, &rxFrame[0], sizeof(rx));
+
+				if (m_adc_callback) {
+					m_adc_callback(rx.payload);
+				}
+				daqOnNewADCCallback(rx.payload);
+			}
+			break;
+
+			case RESP_ENCODER_READINGS:
+			{
+				TFrame_ENCODERS_readings rx;
+				::memcpy((uint8_t*)&rx, &rxFrame[0], sizeof(rx));
+
+				if (m_enc_callback) {
+					m_enc_callback(rx.payload);
+				}
+				daqOnNewENCCallback(rx.payload);
+			}
+			break;
+
+			case RESP_EMS22A_READINGS:
+			{
+				TFrame_ENCODER_ABS_reading rx;
+				::memcpy((uint8_t*)&rx, &rxFrame[0], sizeof(rx));
+
+				if (m_encabs_callback) {
+					m_encabs_callback(rx.payload);
+				}
+				daqOnNewENCAbsCallback(rx.payload);
+			}
+			break;
+		};
+	}
 }
 
 bool ArduinoDAQ_LowLevel::iterate()
@@ -264,53 +317,14 @@ bool ArduinoDAQ_LowLevel::iterate()
 	while (ReceiveFrameFromController(rxFrame) && ++nFrames<MAX_FRAMES_PER_ITERATE)
 	{
 		// Process them:
-		//MRPT_LOG_INFO_STREAM  << "Rx frame, len=" << rxFrame.size();
-		if (rxFrame.size() >= 5)
-		{
-			switch (rxFrame[1])
-			{
-				case RESP_ADC_READINGS:
-				{
-					TFrame_ADC_readings rx;
-					::memcpy((uint8_t*)&rx, &rxFrame[0], sizeof(rx));
-
-					if (m_adc_callback) {
-						m_adc_callback(rx.payload);
-					}
-					daqOnNewADCCallback(rx.payload);
-				}
-				break;
-
-				case RESP_ENCODER_READINGS:
-				{
-					TFrame_ENCODERS_readings rx;
-					::memcpy((uint8_t*)&rx, &rxFrame[0], sizeof(rx));
-
-					if (m_enc_callback) {
-						m_enc_callback(rx.payload);
-					}
-					daqOnNewENCCallback(rx.payload);
-				}
-				break;
-
-				case RESP_EMS22A_READINGS:
-				{
-					TFrame_ENCODER_ABS_reading rx;
-					::memcpy((uint8_t*)&rx, &rxFrame[0], sizeof(rx));
-
-					if (m_encabs_callback) {
-						m_encabs_callback(rx.payload);
-					}
-					daqOnNewENCAbsCallback(rx.payload);
-				}
-				break;
-			};
-		}
+		processIncommingFrame(rxFrame);
 	}
 
 	// if no frame was received, ping the uC to keep comms alive:
-	if (!nFrames)
+	if (!nFrames && m_NOP_sent_counter++>20)
 	{
+		m_NOP_sent_counter=0;
+
 		// Send a dummy NOP command
 		TFrameCMD_NOP cmd;
 		cmd.calc_and_update_checksum();
@@ -402,6 +416,7 @@ bool ArduinoDAQ_LowLevel::AttemptConnection()
 		m_serial.setConfig(m_serial_port_baudrate);
 		m_serial.setTimeouts(100,0,10,0,50);
 
+		MRPT_LOG_INFO_FMT("[ArduinoDAQ_LowLevel::AttemptConnection] Serial port '%s' open was successful.", m_serial_port_name.c_str() );
 		return true;
 	}
 	catch (std::exception &e)
@@ -427,7 +442,7 @@ bool ArduinoDAQ_LowLevel::WriteBinaryFrame(const uint8_t *full_frame, const size
 			s+=mrpt::format("TX frame (%u bytes): ", (unsigned int) full_frame_len);
 			for (size_t i=0;i< full_frame_len;i++)
 				s+=mrpt::format("%02X ", full_frame[i]);
-			MRPT_LOG_INFO_FMT("Tx frame: %s", s.c_str());
+			MRPT_LOG_DEBUG_FMT("Tx frame: %s", s.c_str());
 		}
 #endif
 
@@ -438,6 +453,48 @@ bool ArduinoDAQ_LowLevel::WriteBinaryFrame(const uint8_t *full_frame, const size
 	{
 		return false;
 	}
+}
+
+bool ArduinoDAQ_LowLevel::SendFrameAndWaitAnswer(
+	const uint8_t *full_frame,
+	const size_t full_frame_len,
+	const int num_retries,
+	const int retries_interval_ms,
+	uint8_t expected_ans_opcode
+	)
+{
+	if (expected_ans_opcode==0 && full_frame_len>2)
+		expected_ans_opcode=full_frame[1]+0x70; // answer OPCODE convention
+
+	for (int iter=0;iter<num_retries;iter++)
+	{
+		if (iter>0)
+			std::this_thread::sleep_for(std::chrono::milliseconds(retries_interval_ms));
+
+		// Send:
+		if (!WriteBinaryFrame(full_frame,full_frame_len))
+			continue;
+
+		// Wait for answer:
+		std::vector<uint8_t> rxFrame;
+		if (this->ReceiveFrameFromController(rxFrame) && rxFrame.size()>4)
+		{
+			const auto RX_OPCODE = rxFrame[1];
+			if (RX_OPCODE==expected_ans_opcode)
+			{
+				// We received the ACK from the uC, yay!
+				MRPT_LOG_DEBUG_FMT("SendFrameAndWaitAnswer(): Rx ACK for OPCODE=0x%02X after %i retries.",full_frame_len>2 ? full_frame[1] : 0, iter);
+				return true;
+			}
+			else
+			{
+				// Ensure the frame gets processed:
+				processIncommingFrame(rxFrame);
+			}
+		}
+	}
+	MRPT_LOG_ERROR_FMT("SendFrameAndWaitAnswer(): Missed ACK for OPCODE=0x%02X",full_frame_len>2 ? full_frame[1] : 0);
+	return false; // No answer!
 }
 
 bool ArduinoDAQ_LowLevel::ReceiveFrameFromController(std::vector<uint8_t> &rxFrame)
@@ -479,7 +536,7 @@ bool ArduinoDAQ_LowLevel::ReceiveFrameFromController(std::vector<uint8_t> &rxFra
 		catch (std::exception &e)
 		{
 			// Disconnected?
-			std::cerr << "[ArduinoDAQ_LowLevel::ReceiveFrameFromController] Comms error: " << e.what() << std::endl;
+			MRPT_LOG_ERROR_FMT("ReceiveFrameFromController(): Comms error: %s", e.what());
 			return false;
 		}
 
@@ -495,7 +552,7 @@ bool ArduinoDAQ_LowLevel::ReceiveFrameFromController(std::vector<uint8_t> &rxFra
 			std::this_thread::sleep_for(1ms);
 		}
 
-		// Lectura OK:
+		// Reading was OK:
 		// Check start flag:
 		bool is_ok = true;
 
@@ -539,7 +596,7 @@ bool ArduinoDAQ_LowLevel::ReceiveFrameFromController(std::vector<uint8_t> &rxFra
 			s+=mrpt::format("RX frame (%u bytes): ", (unsigned int) lengthField);
 			for (size_t i=0;i< lengthField;i++)
 				s+=mrpt::format("%02X ", rxFrame[i]);
-			MRPT_LOG_INFO_FMT("%s", s.c_str());
+			MRPT_LOG_DEBUG_FMT("%s", s.c_str());
 		}
 #endif
 
@@ -556,7 +613,7 @@ bool ArduinoDAQ_LowLevel::CMD_GPIO_output(int pin, bool pinState)
 
     cmd.calc_and_update_checksum();
 
-    return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd),sizeof(cmd));
+	return SendFrameAndWaitAnswer(reinterpret_cast<uint8_t*>(&cmd),sizeof(cmd));
 }
 
 //!< Sets the clutch
@@ -573,7 +630,7 @@ bool ArduinoDAQ_LowLevel::CMD_DAC(int dac_index,double dac_value_volts)
 
     cmd.calc_and_update_checksum();
 
-    return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd),sizeof(cmd));
+	return SendFrameAndWaitAnswer(reinterpret_cast<uint8_t*>(&cmd),sizeof(cmd));
 }
 
 bool ArduinoDAQ_LowLevel::IsConnected() const
@@ -587,14 +644,14 @@ bool ArduinoDAQ_LowLevel::CMD_ADC_START(const TFrameCMD_ADC_start_payload_t &adc
 	cmd.payload = adc_config;
 	cmd.calc_and_update_checksum();
 
-	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));
+	return SendFrameAndWaitAnswer(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));
 }
 bool ArduinoDAQ_LowLevel::CMD_ADC_STOP()
 {
 	TFrameCMD_ADC_stop cmd;
 	cmd.calc_and_update_checksum();
 
-	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));
+	return SendFrameAndWaitAnswer(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));
 }
 
 bool ArduinoDAQ_LowLevel::CMD_ENCODERS_START(const TFrameCMD_ENCODERS_start_payload_t &enc_config)
@@ -603,14 +660,14 @@ bool ArduinoDAQ_LowLevel::CMD_ENCODERS_START(const TFrameCMD_ENCODERS_start_payl
 	cmd.payload = enc_config;
 	cmd.calc_and_update_checksum();
 
-	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));
+	return SendFrameAndWaitAnswer(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));
 }
 bool ArduinoDAQ_LowLevel::CMD_ENCODERS_STOP()
 {
 	TFrameCMD_ENCODERS_stop cmd;
 	cmd.calc_and_update_checksum();
 
-	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));
+	return SendFrameAndWaitAnswer(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));
 }
 
 bool ArduinoDAQ_LowLevel::CMD_ENCODER_ABS_START(const TFrameCMD_EMS22A_start_payload_t &enc_config)
@@ -619,14 +676,14 @@ bool ArduinoDAQ_LowLevel::CMD_ENCODER_ABS_START(const TFrameCMD_EMS22A_start_pay
 	cmd.payload = enc_config;
 	cmd.calc_and_update_checksum();
 
-	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));
+	return SendFrameAndWaitAnswer(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));
 }
 bool ArduinoDAQ_LowLevel::CMD_ENCODER_ABS_STOP()
 {
 	TFrameCMD_EMS22A_stop cmd;
 	cmd.calc_and_update_checksum();
 
-	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));
+	return SendFrameAndWaitAnswer(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));
 }
 
 bool ArduinoDAQ_LowLevel::CMD_PWM(int pin_index, uint8_t pwm_value)
@@ -637,5 +694,5 @@ bool ArduinoDAQ_LowLevel::CMD_PWM(int pin_index, uint8_t pwm_value)
 	cmd.payload.flag_enable_timeout = true;
 	cmd.calc_and_update_checksum();
 
-	return WriteBinaryFrame(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));
+	return SendFrameAndWaitAnswer(reinterpret_cast<uint8_t*>(&cmd), sizeof(cmd));
 }

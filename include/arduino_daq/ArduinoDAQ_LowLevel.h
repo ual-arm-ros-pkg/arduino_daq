@@ -114,12 +114,21 @@ protected:
 	std::string m_serial_port_name;
 	int         m_serial_port_baudrate;
 	CSerialPort m_serial;  //!< The serial COMMS object
+	int         m_NOP_sent_counter {0};
 
 	// Local methods:
 	bool AttemptConnection();   //!< Returns true if connected OK, false on error.
 	bool IsConnected() const; 	//!< Returns true if the serial comms are working
 	bool ReceiveFrameFromController(std::vector<uint8_t> &rx_data); //!< Tries to get a framed chunk of data from the controller.
+	void processIncommingFrame(const std::vector<uint8_t> &rxFrame);
 	bool WriteBinaryFrame( const uint8_t *full_frame, const size_t full_frame_len); //!< Sends a binary packet, in the expected format  (returns false on COMMS error)
+	bool SendFrameAndWaitAnswer(
+		const uint8_t *full_frame,
+		const size_t full_frame_len,
+		const int num_retries = 10,
+		const int retries_interval_ms = 40,
+		uint8_t expected_ans_opcode = 0 //<! 0 means the default convention: full_frame[1]+0x70,
+		); //!< Sends a binary packet, in the expected format  (returns false on COMMS error)
 
 	std::function<void(TFrame_ADC_readings_payload_t)> m_adc_callback;
 	std::function<void(TFrame_ENCODERS_readings_payload_t)> m_enc_callback;
