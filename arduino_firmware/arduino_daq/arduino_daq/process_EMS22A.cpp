@@ -42,8 +42,12 @@ unsigned long  EMS22A_last_millis        = 0;
 uint16_t       EMS22A_sampling_period_ms = 200;
 bool           EMS22A_active             = false;
 
-bool init_EMS22A(int8_t ENCODER_ABS_CS, int8_t ENCODER_ABS_CLK, int8_t ENCODER_ABS_DO, uint16_t sampling_period_ms)
+bool init_EMS22A(int8_t init_ENCODER_ABS_CS, int8_t init_ENCODER_ABS_CLK, int8_t init_ENCODER_ABS_DO, uint16_t init_sampling_period_ms)
 {
+	ENCODER_ABS_CS  = init_ENCODER_ABS_CS;
+	ENCODER_ABS_CLK = init_ENCODER_ABS_CLK;
+	ENCODER_ABS_DO  = init_ENCODER_ABS_DO;
+	EMS22A_sampling_period_ms = init_sampling_period_ms;
 	if (ENCODER_ABS_CS<=0 || ENCODER_ABS_CLK<=0 || ENCODER_ABS_DO<=0)
 		return false; // error
 	
@@ -52,18 +56,22 @@ bool init_EMS22A(int8_t ENCODER_ABS_CS, int8_t ENCODER_ABS_CLK, int8_t ENCODER_A
 	pinMode(ENCODER_ABS_DO, INPUT);
 
 	digitalWrite(ENCODER_ABS_CLK, HIGH);
-	digitalWrite(ENCODER_ABS_CS, LOW);
+	digitalWrite(ENCODER_ABS_CS, HIGH);
 	
 	return true; // all ok
 }
 
- uint16_t read_EMS22A()
- {
-	 digitalWrite(ENCODER_ABS_CS, HIGH);
-	 digitalWrite(ENCODER_ABS_CS, LOW);
+uint16_t read_EMS22A()
+{
+	pinMode(ENCODER_ABS_CS, OUTPUT);
+	pinMode(ENCODER_ABS_CLK, OUTPUT);
+	pinMode(ENCODER_ABS_DO, INPUT);
+
+	digitalWrite(ENCODER_ABS_CS, LOW);
+	delayMicroseconds(2);
 
 	uint16_t pos = 0;
-	 for (int i=0; i<16; i++) {
+	for (int i=0; i<16; i++) {
 		 digitalWrite(ENCODER_ABS_CLK, LOW);  delayMicroseconds(1);
 		 digitalWrite(ENCODER_ABS_CLK, HIGH); delayMicroseconds(1);
 		 
@@ -73,10 +81,10 @@ bool init_EMS22A(int8_t ENCODER_ABS_CS, int8_t ENCODER_ABS_CLK, int8_t ENCODER_A
 			 pos |= 0x01;
 		 }
 	 }
-	 digitalWrite(ENCODER_ABS_CLK, LOW);  delayMicroseconds(1);
-	 digitalWrite(ENCODER_ABS_CLK, HIGH);  delayMicroseconds(1);
-	 return pos;
- }
+
+	digitalWrite(ENCODER_ABS_CS, HIGH);
+	return pos;
+}
 
 void processEMS22A()
 {
@@ -101,7 +109,7 @@ void processEMS22A()
 	
 	TFrame_ENCODER_ABS_reading tx;
 	// send answer back:
-	tx.payload.timestamp_ms = millis();
+	tx.payload.timestamp_ms = tnow;
 	tx.payload.enc_pos = enc_pos;
 	tx.payload.enc_status = enc_status;
 	tx.calc_and_update_checksum();

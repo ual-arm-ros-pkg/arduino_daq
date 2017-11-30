@@ -111,3 +111,12 @@ Communication PC <-> arduino happens based on data frames as follow:
 The complete list of OPCODES and associated payload `DATA` fields are defined in the C++ header
 file [arduinodaq2pc-structs.h](https://github.com/ual-arm-ros-pkg/arduino-daq-ros-pkg/blob/master/arduino_firmware/arduino_daq/arduino_daq/arduinodaq2pc-structs.h),
 which is `#include`d in both, host C++ libraries and the embedded firmware.
+
+
+Programming the microcontroller
+=================================
+
+For an Atmega328p ("Arduino Mini Pro"), use this command line from 
+the root directory of this repository:
+
+        avrdude -p atmega328p -c arduino -P /dev/ttyUSB0 -b 57600 -U flash:w:"arduino_firmware/arduino_daq/arduino_daq/Release/arduino_daq.hex":i

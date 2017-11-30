@@ -87,7 +87,7 @@ void flash_led(int ntimes, int nms)
 	}
 }
 
-static void send_simple_opcode_frame(const uint8_t op)
+void send_simple_opcode_frame(const uint8_t op)
 {
 	const uint8_t rx[] = { FRAME_START_FLAG, op, 0x00, 0x00, FRAME_END_FLAG };
 	Serial.write(rx,sizeof(rx));
@@ -97,6 +97,15 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 {
 	switch (opcode)
 	{
+	case OP_NOP:
+	{
+		if (datalen!=sizeof(TFrameCMD_NOP_payload_t)) return send_simple_opcode_frame(RESP_WRONG_LEN);
+
+		// No-operation: just a fake command to check if comms are alive
+		return send_simple_opcode_frame(RESP_NOP);
+	}
+	break;
+	
 	case OP_SET_DAC:
 	{
 		if (datalen!=sizeof(TFrameCMD_SetDAC_payload_t)) return send_simple_opcode_frame(RESP_WRONG_LEN);
@@ -223,6 +232,7 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 		memcpy(&enc_req,data, sizeof(enc_req));
 
 		init_encoders(enc_req);
+		ENCODERS_active=true;
 
 		// send answer back:
 		send_simple_opcode_frame(RESP_START_ENCODERS);
@@ -233,6 +243,7 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 	{
 		TFrameCMD_ENCODERS_start_payload_t cmd_empty;
 		init_encoders(cmd_empty);
+		ENCODERS_active=false;
 
 		// send answer back:
 		send_simple_opcode_frame(RESP_STOP_ENCODERS);
@@ -250,6 +261,8 @@ void process_command(const uint8_t opcode, const uint8_t datalen, const uint8_t*
 			EMS22A_req.ENCODER_ABS_DO, EMS22A_req.sampling_period_ms
 			))
 		{
+
+			EMS22A_active = true;
 			// send answer back:
 			send_simple_opcode_frame(RESP_START_EMS22A);
 		}

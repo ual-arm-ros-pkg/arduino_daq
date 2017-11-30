@@ -58,6 +58,7 @@ void processIncommingPkts()
 		if (rx_buf_len==0)
 			if (b!=FRAME_START_FLAG) {
 				reset_rx_buf();
+				send_simple_opcode_frame(RESP_FRAME_ERROR);
 				continue;
 			}
 
@@ -73,6 +74,7 @@ void processIncommingPkts()
 			// Check if we have a full frame:
 			if (rx_buf[rx_buf_len-1]!=FRAME_END_FLAG) {
 				reset_rx_buf();
+				send_simple_opcode_frame(RESP_FRAME_ERROR);
 				continue;
 			}
 			const uint8_t opcode  = rx_buf[1];
@@ -84,6 +86,7 @@ void processIncommingPkts()
 			for (uint8_t i=0;i<datalen;i++) chksum+=data[i];
 			if (rx_buf[rx_buf_len-2]!=chksum) {
 				reset_rx_buf();
+				send_simple_opcode_frame(RESP_CHECKSUM_ERROR);
 				continue;
 			}
 
