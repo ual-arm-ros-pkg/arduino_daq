@@ -49,21 +49,40 @@
 
 #include <iostream>
 
+#include <mrpt/version.h>
+#if MRPT_VERSION<0x199
+#include <mrpt/utils/utils_defs.h>
+using mrpt::utils::VerbosityLevel;
+using namespace mrpt::utils;
+#else
+#include <mrpt/core/format.h>
+#include <mrpt/core/exceptions.h>
+#include <mrpt/core/bits_math.h>
+using mrpt::system::VerbosityLevel;
+using namespace mrpt::system;
+using namespace mrpt;
+#endif
+
+
 using namespace std;
 using namespace mrpt;
-using namespace mrpt::utils;
 
 #define DEBUG_TRACES
 
 #ifdef HAVE_ROS
-void log_callback(const std::string &msg, const mrpt::utils::VerbosityLevel level, const std::string &loggerName, const mrpt::system::TTimeStamp timestamp, void *userParam)
+
+#if MRPT_VERSION<0x199
+void log_callback(const std::string &msg, const VerbosityLevel level, const std::string &loggerName, const mrpt::system::TTimeStamp timestamp, void *userParam)
+#else
+void log_callback(const std::string &msg, const VerbosityLevel level, const std::string &loggerName, const mrpt::system::TTimeStamp timestamp)
+#endif
 {
 	switch (level)
 	{
-	case mrpt::utils::LVL_DEBUG: ROS_DEBUG("%s",msg.c_str()); break;
-	case mrpt::utils::LVL_INFO:  ROS_INFO("%s",msg.c_str()); break;
-	case mrpt::utils::LVL_WARN:  ROS_WARN("%s",msg.c_str()); break;
-	case mrpt::utils::LVL_ERROR: ROS_ERROR("%s",msg.c_str()); break;
+	case LVL_DEBUG: ROS_DEBUG("%s",msg.c_str()); break;
+	case LVL_INFO:  ROS_INFO("%s",msg.c_str()); break;
+	case LVL_WARN:  ROS_WARN("%s",msg.c_str()); break;
+	case LVL_ERROR: ROS_ERROR("%s",msg.c_str()); break;
 	};
 }
 #endif
@@ -81,11 +100,15 @@ ArduinoDAQ_LowLevel::ArduinoDAQ_LowLevel() :
 	m_serial_port_baudrate(115200)
 {
 #ifdef HAVE_ROS
+#if MRPT_VERSION<0x199
 	this->logRegisterCallback(&log_callback, this);
+#else
+	this->logRegisterCallback(&log_callback);
+#endif
 #endif
 
 #ifdef DEBUG_TRACES
-	this->setMinLoggingLevel(mrpt::utils::LVL_DEBUG);
+	this->setMinLoggingLevel(LVL_DEBUG);
 #endif
 }
 
@@ -449,7 +472,11 @@ bool ArduinoDAQ_LowLevel::WriteBinaryFrame(const uint8_t *full_frame, const size
 		}
 #endif
 
+#if MRPT_VERSION<0x199
 		m_serial.WriteBuffer(full_frame,full_frame_len);
+#else
+		m_serial.Write(full_frame,full_frame_len);
+#endif
 		return true;
 	}
 	catch (std::exception &)
@@ -622,7 +649,7 @@ bool ArduinoDAQ_LowLevel::CMD_GPIO_output(int pin, bool pinState)
 bool ArduinoDAQ_LowLevel::CMD_DAC(int dac_index,double dac_value_volts)
 {
     uint16_t dac_counts = 4096 * dac_value_volts / 5.0;
-    mrpt::utils::saturate(dac_counts, uint16_t(0), uint16_t(4095));
+	saturate(dac_counts, uint16_t(0), uint16_t(4095));
 
     TFrameCMD_SetDAC cmd;
     cmd.payload.dac_index = dac_index;
