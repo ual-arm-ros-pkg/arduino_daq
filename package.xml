@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>arduino_daq</name>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
   <description>AVR8 firmware, a host standalone C++ library, and a ROS node for UAL eCAR's Arduino-based DAQ system, but it is generic enough for use in many other applications</description>
 
   <maintainer email="jlblanco@ual.es">Jose Luis Blanco Claraco</maintainer>
